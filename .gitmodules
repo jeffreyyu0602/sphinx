@@ -154,3 +154,6 @@
 [submodule "generators/vexiiriscv"]
 	path = generators/vexiiriscv
 	url = https://github.com/ucb-bar/vexiiriscv-tile.git
+[submodule "generators/voyager"]
+	path = generators/voyager
+	url = https://code.stanford.edu/voyager/voyager-soc-wrapper.git
