@@ -40,6 +40,7 @@ class DigitalTop(implicit p: Parameters) extends ChipyardSystem
   with fftgenerator.CanHavePeripheryFFT // Enables optionally having an MMIO-based FFT block
   with constellation.soc.CanHaveGlobalNoC // Support instantiating a global NoC interconnect
   with rerocc.CanHaveReRoCCTiles // Support tiles that instantiate rerocc-attached accelerators
+  with voyager.CanHavePeripheryVoyager // Enables adding a Voyager-based DNN accelerator
 {
   override lazy val module = new DigitalTopModule(this)
 }

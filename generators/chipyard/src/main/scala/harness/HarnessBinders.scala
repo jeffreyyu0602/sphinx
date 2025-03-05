@@ -25,6 +25,7 @@ import icenet.{NicLoopback, SimNetwork}
 import chipyard._
 import chipyard.clocking.{HasChipyardPRCI}
 import chipyard.iobinders._
+import voyager._
 
 case object HarnessBinders extends Field[HarnessBinderFunction]({case _ => })
 
@@ -326,3 +327,9 @@ class WithResetFromHarness extends HarnessBinder({
   }
 })
 
+class WithVoyagerVerification extends HarnessBinder({
+  case (th: HasHarnessInstantiators, port: ClockTapPort, chipId: Int) => {
+    val verification = Module(new VoyagerVerification)
+    verification.io.clock := th.harnessBinderClock
+  }
+})

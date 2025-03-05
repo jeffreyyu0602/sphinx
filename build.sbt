@@ -154,11 +154,35 @@ lazy val testchipip = (project in file("generators/testchipip"))
   .settings(commonSettings)
 
 lazy val chipyard = (project in file("generators/chipyard"))
-  .dependsOn(testchipip, rocketchip, boom, rocketchip_blocks, rocketchip_inclusive_cache,
-    dsptools, rocket_dsp_utils,
-    gemmini, icenet, tracegen, cva6, nvdla, sodor, ibex, fft_generator,
-    constellation, mempress, barf, shuttle, caliptra_aes, rerocc,
-    compressacc, saturn, ara, firrtl2_bridge, vexiiriscv, voyager)
+  .dependsOn(
+    testchipip,
+    rocketchip,
+    boom,
+    rocketchip_blocks,
+    rocketchip_inclusive_cache,
+    dsptools,
+    rocket_dsp_utils,
+    gemmini,
+    icenet,
+    tracegen,
+    cva6,
+    nvdla,
+    sodor,
+    ibex,
+    fft_generator,
+    constellation,
+    mempress,
+    barf,
+    shuttle,
+    caliptra_aes,
+    rerocc,
+    compressacc,
+    saturn,
+    ara,
+    firrtl2_bridge,
+    vexiiriscv,
+    voyager
+  )
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(
     libraryDependencies ++= Seq(
