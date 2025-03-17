@@ -13,6 +13,12 @@ SRC = $(shell find -L networks -name "*.c" )
 OBJ = $(SRC:.c=.o)
 BIN = $(SRC:.c=.riscv)
 
+common/run_voyager_operation.o: common/run_voyager_operation.c common/run_voyager_operation.h common/voyager_address.h common/voyager_params.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+common/traps.o: common/traps.c common/traps.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
 $(OBJ): %.o: %.c common/run_voyager_operation.h common/voyager_address.h common/voyager_params.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
