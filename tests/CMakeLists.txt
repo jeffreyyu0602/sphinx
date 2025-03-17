@@ -1,7 +1,7 @@
 ########################################################################################################################
 # file:  CMakeLists.txt
 #
-# usage: 
+# usage:
 #   Edit "VARIABLES"-section to suit project requirements.
 #   Build instructions:
 #     cmake -S ./ -B ./build/ -D CMAKE_BUILD_TYPE=Debug
@@ -87,6 +87,7 @@ add_executable(gcd gcd.c)
 add_executable(hello hello.c)
 add_executable(mt-hello mt-hello.c)
 add_executable(symmetric symmetric.c)
+add_executable(hyperram hyperram.c)
 
 #################################
 # Disassembly
