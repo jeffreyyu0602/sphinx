@@ -157,3 +157,6 @@
 [submodule "generators/voyager"]
 	path = generators/voyager
 	url = https://code.stanford.edu/voyager/voyager-soc-wrapper.git
+[submodule "generators/hyperram"]
+	path = generators/hyperram
+	url = git@code.stanford.edu:tsmc7/sphinx/hyperram.git
