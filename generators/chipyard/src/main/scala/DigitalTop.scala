@@ -4,8 +4,10 @@ import chisel3._
 
 import freechips.rocketchip.subsystem._
 import freechips.rocketchip.system._
-import org.chipsalliance.cde.config.Parameters
+import org.chipsalliance.cde.config.{Field, Parameters}
 import freechips.rocketchip.devices.tilelink._
+
+case object DigitalTopName extends Field[String]("DigitalTop")
 
 // ------------------------------------
 // BOOM and/or Rocket Top Level Systems
@@ -44,7 +46,8 @@ class DigitalTop(
     with rerocc.CanHaveReRoCCTiles                             // Support tiles that instantiate rerocc-attached accelerators
     with hyperram.CanHavePeripheryHyperRAM                     // Enables optionally adding a HyperRAM controller
     {
-  override lazy val module = new DigitalTopModule(this)
+  override lazy val desiredName = p(DigitalTopName)
+  override lazy val module      = new DigitalTopModule(this)
 }
 
 class DigitalTopModule(l: DigitalTop) extends ChipyardSystemModule(l) with freechips.rocketchip.util.DontTouch

@@ -2,9 +2,12 @@ package chipyard
 
 import org.chipsalliance.cde.config.Config
 
+case class WithDigitalTopName(name: String) extends Config((site, here, up) => { case DigitalTopName => name })
+
 class SphinxConfig
     extends Config(
-      new hyperram.WithHyperRAM ++
+      new WithDigitalTopName("SphinxTop") ++
+        new hyperram.WithHyperRAM ++
         new chipyard.harness.WithSimHyperRAM ++
         new chipyard.iobinders.WithHyperRAMIOCells ++
         new freechips.rocketchip.subsystem.WithoutTLMonitors ++
