@@ -19,6 +19,7 @@ import freechips.rocketchip.devices.debug.ClockedDMIIO
 import freechips.rocketchip.tilelink.TLBundle
 import org.chipsalliance.diplomacy.nodes.HeterogeneousBag
 import hyperram.HyperRAMTopIO
+import chipyard.D2.{D2ChipGPIO, D2ChipTopIO, D2MuxIO}
 
 trait Port[T <: Data] {
   val getIO: () => T
@@ -99,3 +100,9 @@ case class TLMemPort(val getIO: () => HeterogeneousBag[TLBundle]) extends Port[H
 case class GCDBusyPort(val getIO: () => Bool) extends Port[Bool]
 
 case class HyperRAMPort(val getIO: () => HyperRAMTopIO) extends Port[HyperRAMTopIO]
+
+case class D2Port(val getIO: () => D2ChipTopIO) extends Port[D2ChipTopIO]
+
+case class D2GPIOPort(val getIO: () => D2ChipGPIO) extends Port[D2ChipGPIO]
+
+case class D2MuxPort(val getIO: () => Bool) extends Port[Bool]

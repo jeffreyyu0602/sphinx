@@ -6,7 +6,9 @@ case class WithDigitalTopName(name: String) extends Config((site, here, up) => {
 
 class SphinxConfig
     extends Config(
-      new WithDigitalTopName("SphinxTop") ++
+      new chipyard.harness.WithSphinxSelected ++
+        new chipyard.harness.WithD2TiedOff ++
+        new WithDigitalTopName("SphinxTop") ++
         new hyperram.WithHyperRAM ++
         new chipyard.harness.WithSimHyperRAM ++
         new chipyard.iobinders.WithHyperRAMIOCells ++

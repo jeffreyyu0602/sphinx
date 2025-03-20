@@ -43,9 +43,7 @@ object ApplyHarnessBinders {
 
 class HarnessBinder[T <: HasHarnessInstantiators, S <: Port[_]](
   fn: => HarnessBinderFunction)
-    extends Config((site, here, up) => { case HarnessBinders =>
-      fn.orElse(up(HarnessBinders))
-    })
+    extends Config((site, here, up) => { case HarnessBinders => fn.orElse(up(HarnessBinders)) })
 
 class WithGPIOTiedOff
     extends HarnessBinder({
@@ -398,9 +396,23 @@ class WithSimHyperRAM
         simHyperRAM.io.DQ7 <> port.io.DQ(7)
         simHyperRAM.io.RWDS <> port.io.RWDS
 
-        simHyperRAM.io.CK       := port.io.CK
-        simHyperRAM.io.CKn      := port.io.CKn
+        simHyperRAM.io.CK       := port.io.CK.asClock
+        simHyperRAM.io.CKn      := port.io.CKn.asClock
         simHyperRAM.io.CSNeg    := port.io.CSn
         simHyperRAM.io.RESETNeg := port.io.RESETn
+      }
+    })
+
+class WithD2TiedOff
+    extends HarnessBinder({
+      case (th: HasHarnessInstantiators, port: D2Port, chipId: Int) => {
+        port.io := DontCare
+      }
+    })
+
+class WithSphinxSelected
+    extends HarnessBinder({
+      case (th: HasHarnessInstantiators, port: D2MuxPort, chipId: Int) => {
+        port.io := 0.U
       }
     })

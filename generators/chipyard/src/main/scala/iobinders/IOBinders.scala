@@ -43,6 +43,7 @@ import chipyard.example.CanHavePeripheryGCD
 import hyperram.{CanHavePeripheryHyperRAM, HyperRAMIO, HyperRAMKey, HyperRAMTopIO}
 
 import scala.reflect.ClassTag
+import chipyard.D2._
 
 object IOBinderTypes {
   type IOBinderTuple    = (Seq[Port[_]], Seq[IOCell])
@@ -670,33 +671,141 @@ class WithHyperRAMIOCells
         .map({ hyperRAMIO =>
           val p = system.asInstanceOf[BaseSubsystem].p
 
-          val port = IO(new HyperRAMTopIO).suggestName("hyperram")
+          // Add design mux
+          val designSelect        = Wire(Input(Bool()))
+          val (muxPort, muxCells) =
+            IOCell.generateIOFromSignal(designSelect, "design_mux", p(IOCellKey), abstractResetAsAsync = true)
+          val muxTuple            = (D2MuxPort(() => muxPort), muxCells)
+          val d2Top               = Module(new D2Top)
+          val d2ChipTopIO         = Wire(new D2ChipTopIO)
 
-          val ckIOs     = IOCell.generateFromSignal(hyperRAMIO.CK, port.CK, Some("hyperram_CK"), p(IOCellKey))
-          val ckNIOs    = IOCell.generateFromSignal(hyperRAMIO.CKn, port.CKn, Some("hyperram_CKn"), p(IOCellKey))
-          val csNIOs    = IOCell.generateFromSignal(hyperRAMIO.CSn, port.CSn, Some("hyperram_CSn"), p(IOCellKey))
-          val resetNIOs =
-            IOCell.generateFromSignal(hyperRAMIO.RESETn, port.RESETn, Some("hyperram_RESETn"), p(IOCellKey))
+          class D2GPIO extends Bundle {
+            val PORTIN  = Input(UInt(3.W))
+            val PORTOUT = Output(UInt(3.W))
+            val PORTEN  = Input(UInt(3.W))
+          }
+          val d2GPIO = Wire(Vec(3, new D2GPIO))
+          val d2ChipGPIO = IO(new D2ChipGPIO).suggestName("d2_gpio")
+
+          // Connect up non-HyperRAM signals from D2 to the D2ChipTopPort
+          d2Top.io.HCLK           := d2ChipTopIO.HCLK
+          d2Top.io.PORESETn       := d2ChipTopIO.PORESETn
+          d2ChipTopIO.CRG_DIAG0   := d2Top.io.CRG_DIAG0
+          d2Top.io.UART_M_RXD     := d2ChipTopIO.UART_M_RXD
+          d2ChipTopIO.UART_M_TXD  := d2Top.io.UART_M_TXD
+          d2ChipTopIO.UART_M_RTS  := d2Top.io.UART_M_RTS
+          d2Top.io.UART_M_CTS     := d2ChipTopIO.UART_M_CTS
+          d2Top.io.UART2_RXD      := d2ChipTopIO.UART2_RXD
+          d2ChipTopIO.UART2_TXD   := d2Top.io.UART2_TXD
+          d2Top.io.NUART0_RXD     := d2ChipTopIO.NUART0_RXD
+          d2ChipTopIO.NUART0_TXD  := d2Top.io.NUART0_TXD
+          d2Top.io.GPIO0_0_PORTIN := d2GPIO(0).PORTIN
+          d2GPIO(0).PORTOUT       := d2Top.io.GPIO0_0_PORTOUT
+          d2GPIO(0).PORTEN        := d2Top.io.GPIO0_0_PORTEN
+          d2Top.io.GPIO0_1_PORTIN := d2GPIO(1).PORTIN
+          d2GPIO(1).PORTOUT       := d2Top.io.GPIO0_1_PORTOUT
+          d2GPIO(1).PORTEN        := d2Top.io.GPIO0_1_PORTEN
+          d2Top.io.GPIO0_2_PORTIN := d2GPIO(2).PORTIN
+          d2GPIO(2).PORTOUT       := d2Top.io.GPIO0_2_PORTOUT
+          d2GPIO(2).PORTEN        := d2Top.io.GPIO0_2_PORTEN
+
+          // Connect up HyperRAM signals from D2 to the HyperRAMIO bundle
+          // We can't automatically connect the signals because the D2 module names them differently
+          val d2HyperRAMIO = Wire(new HyperRAMIO)
+          d2Top.io.HYPERRAM_DQ_0_PORTIN := d2HyperRAMIO.DQ_i(0)
+          d2Top.io.HYPERRAM_DQ_1_PORTIN := d2HyperRAMIO.DQ_i(1)
+          d2Top.io.HYPERRAM_DQ_2_PORTIN := d2HyperRAMIO.DQ_i(2)
+          d2Top.io.HYPERRAM_DQ_3_PORTIN := d2HyperRAMIO.DQ_i(3)
+          d2Top.io.HYPERRAM_DQ_4_PORTIN := d2HyperRAMIO.DQ_i(4)
+          d2Top.io.HYPERRAM_DQ_5_PORTIN := d2HyperRAMIO.DQ_i(5)
+          d2Top.io.HYPERRAM_DQ_6_PORTIN := d2HyperRAMIO.DQ_i(6)
+          d2Top.io.HYPERRAM_DQ_7_PORTIN := d2HyperRAMIO.DQ_i(7)
+          d2Top.io.HYPERRAM_RWDS_PORTIN := d2HyperRAMIO.RWDS_i
+          d2HyperRAMIO.DQ_o(0)          := d2Top.io.HYPERRAM_DQ_0_PORTOUT
+          d2HyperRAMIO.DQ_o(1)          := d2Top.io.HYPERRAM_DQ_1_PORTOUT
+          d2HyperRAMIO.DQ_o(2)          := d2Top.io.HYPERRAM_DQ_2_PORTOUT
+          d2HyperRAMIO.DQ_o(3)          := d2Top.io.HYPERRAM_DQ_3_PORTOUT
+          d2HyperRAMIO.DQ_o(4)          := d2Top.io.HYPERRAM_DQ_4_PORTOUT
+          d2HyperRAMIO.DQ_o(5)          := d2Top.io.HYPERRAM_DQ_5_PORTOUT
+          d2HyperRAMIO.DQ_o(6)          := d2Top.io.HYPERRAM_DQ_6_PORTOUT
+          d2HyperRAMIO.DQ_o(7)          := d2Top.io.HYPERRAM_DQ_7_PORTOUT
+          d2HyperRAMIO.DQ_oe            := d2Top.io.HYPERRAM_DQ_0_PORTEN
+          d2HyperRAMIO.RWDS_o           := d2Top.io.HYPERRAM_RWDS_PORTOUT
+          d2HyperRAMIO.RWDS_oe          := d2Top.io.HYPERRAM_RWDS_PORTEN
+          d2HyperRAMIO.CK               := d2Top.io.HYPERRAM_CK
+          d2HyperRAMIO.CKn              := d2Top.io.HYPERRAM_CKN
+          d2HyperRAMIO.CSn              := d2Top.io.HYPERRAM_CSN0
+          d2HyperRAMIO.RESETn           := d2Top.io.HYPERRAM_RESETN
+
+          val hyperramPort = IO(new HyperRAMTopIO).suggestName("hyperram")
+
+          val ckIOCell = p(IOCellKey).output().suggestName("hyperram_CK")
+          ckIOCell.io.o  := Mux(designSelect, hyperRAMIO.CK.asBool, d2HyperRAMIO.CK.asBool)
+          ckIOCell.io.oe := true.B
+          hyperramPort.CK <> ckIOCell.io.pad
+
+          val ckNIOCell = p(IOCellKey).output().suggestName("hyperram_CKn")
+          ckNIOCell.io.o  := Mux(designSelect, hyperRAMIO.CKn.asBool, d2HyperRAMIO.CKn.asBool)
+          ckNIOCell.io.oe := true.B
+          hyperramPort.CKn <> ckNIOCell.io.pad
+
+          val csNIOCell = p(IOCellKey).output().suggestName("hyperram_CSn")
+          csNIOCell.io.o  := Mux(designSelect, hyperRAMIO.CSn, d2HyperRAMIO.CSn)
+          csNIOCell.io.oe := true.B
+          hyperramPort.CSn <> csNIOCell.io.pad
+
+          val resetNIOCell = p(IOCellKey).output().suggestName("hyperram_RESETn")
+          resetNIOCell.io.o  := Mux(designSelect, hyperRAMIO.RESETn, d2HyperRAMIO.RESETn)
+          resetNIOCell.io.oe := true.B
+          hyperramPort.RESETn <> resetNIOCell.io.pad
 
           // DQ and RWDS are bidirectional, so then need special treatment
           val dqIOs = (0 until 8).map { j =>
             val iocell = p(IOCellKey).gpio().suggestName(s"hyperram_DQ_$j")
-            iocell.io.o        := hyperRAMIO.DQ_o(j)
-            iocell.io.oe       := hyperRAMIO.DQ_oe
-            iocell.io.ie       := true.B
-            hyperRAMIO.DQ_i(j) := iocell.io.i
-            iocell.io.pad <> port.DQ(j)
+            iocell.io.o          := Mux(designSelect, hyperRAMIO.DQ_o(j), d2HyperRAMIO.DQ_o(j))
+            iocell.io.oe         := Mux(designSelect, hyperRAMIO.DQ_oe, d2HyperRAMIO.DQ_oe)
+            iocell.io.ie         := true.B
+            hyperRAMIO.DQ_i(j)   := iocell.io.i
+            d2HyperRAMIO.DQ_i(j) := iocell.io.i
+
+            iocell.io.pad <> hyperramPort.DQ(j)
             iocell
           }
 
           val rwds_iocell = p(IOCellKey).gpio().suggestName("hyperram_RWDS")
-          rwds_iocell.io.o  := hyperRAMIO.RWDS_o
-          rwds_iocell.io.oe := hyperRAMIO.RWDS_oe
-          rwds_iocell.io.ie := true.B
-          hyperRAMIO.RWDS_i := rwds_iocell.io.i
-          rwds_iocell.io.pad <> port.RWDS
+          rwds_iocell.io.o    := Mux(designSelect, hyperRAMIO.RWDS_o, d2HyperRAMIO.RWDS_o)
+          rwds_iocell.io.oe   := Mux(designSelect, hyperRAMIO.RWDS_oe, d2HyperRAMIO.RWDS_oe)
+          rwds_iocell.io.ie   := true.B
+          hyperRAMIO.RWDS_i   := rwds_iocell.io.i
+          d2HyperRAMIO.RWDS_i := rwds_iocell.io.i
+          rwds_iocell.io.pad <> hyperramPort.RWDS
 
-          (Seq(HyperRAMPort(() => port)), dqIOs ++ Some(rwds_iocell) ++ ckIOs ++ ckNIOs ++ csNIOs ++ resetNIOs)
+          val hyperramTuple = (
+            HyperRAMPort(() => hyperramPort),
+            dqIOs ++ Some(rwds_iocell) ++ Some(ckIOCell) ++ Some(ckNIOCell) ++ Some(csNIOCell) ++ Some(resetNIOCell)
+          )
+
+          val (d2Port, d2Cells) =
+            IOCell.generateIOFromSignal(d2ChipTopIO, "d2", p(IOCellKey), abstractResetAsAsync = true)
+          val d2Tuple           = (D2Port(() => d2Port), d2Cells)
+
+          val d2GPIOs = (0 until 3).map { j =>
+            val d2GPIOIOCell = p(IOCellKey).gpio().suggestName(s"d2_GPIO0_$j")
+            d2GPIOIOCell.io.o  := d2GPIO(j).PORTOUT
+            d2GPIOIOCell.io.oe := d2GPIO(j).PORTEN
+            d2GPIOIOCell.io.ie := true.B
+            d2GPIO(j).PORTIN   := d2GPIOIOCell.io.i
+            d2GPIOIOCell.io.pad <> d2ChipGPIO.GPIO0(j)
+            d2GPIOIOCell
+          }
+
+          val d2GPIOTuple = (
+            D2GPIOPort(() => d2ChipGPIO),
+            d2GPIOs
+          )
+
+          val allTuples = (Some(d2Tuple) ++ Some(d2GPIOTuple) ++ Some(hyperramTuple) ++ Some(muxTuple)).toSeq
+          (allTuples.map(_._1).toSeq, allTuples.flatMap(_._2).toSeq)
         })
         .getOrElse((Nil, Nil))
     })
