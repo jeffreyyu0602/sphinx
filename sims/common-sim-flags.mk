@@ -19,7 +19,7 @@ SIM_CXXFLAGS = \
 	-I$(base_dir)/generators/voyager/accelerator/test/compiler/proto/ \
 	-I$(base_dir)/generators/voyager/accelerator/lib/xtensor/include \
 	-I$(base_dir)/generators/voyager/accelerator/lib/xtl/include \
-	-I$(base_dir)/generators/voyager/accelerator/lib/xtl/include \
+	-I$(base_dir)/generators/voyager/accelerator/lib/spdlog/include \
 	-I/cad/mentor/2024.2_1/Mgc_home/shared/include \
 	-I$(CONDA_PREFIX)/include \
 	-D$(DATATYPE) \
