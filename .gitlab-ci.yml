@@ -4,7 +4,6 @@ stages:
   - cleanup
 
 variables:
-  GIT_STRATEGY: clone
   GIT_SUBMODULE_STRATEGY: none
   GIT_CLEAN_FLAGS: -ffdx
 

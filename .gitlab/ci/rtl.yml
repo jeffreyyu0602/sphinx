@@ -10,7 +10,15 @@ RTL Simulation:
     - conda activate /sim/gitlab-runner/envs/ci-env-$CI_PIPELINE_ID
   script:
     - $(pwd)/scripts/init-submodules-no-riscv-tools.sh --minimal
+    - $(pwd)/scripts/build-libgloss.sh riscv-tools -p $CONDA_PREFIX/riscv-tools
     - cd sims/vcs
-    - python run_voyager.py --models resnet18 --tests submodule_5 --config VoyagerConfig
+    - python run_voyager.py --models resnet18 --config VoyagerConfig --num_processes 32
   rules:
     - when: always
+  artifacts:
+    when: always
+    paths:
+      - ./sims/vcs/regression_results
+    expire_in: 1 month
+  variables:
+    GIT_STRATEGY: clone
