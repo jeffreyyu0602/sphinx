@@ -1,0 +1,22 @@
+Setup Conda:
+  stage: setup
+  before_script:
+    - export PATH=$HOME/miniforge3/condabin:$PATH
+    - source $(conda info --base)/etc/profile.d/conda.sh
+  script:
+    # Create a minimal conda environment with conda-lock first
+    - conda create -y -p $(pwd)/.conda-lock-env -c conda-forge $(grep "conda-lock" $(pwd)/conda-reqs/chipyard-base.yaml | sed 's/^ \+-//')
+    - conda activate $(pwd)/.conda-lock-env
+    # Create conda environment using lock file
+    - conda-lock install -p /sim/gitlab-runner/envs/ci-env-$CI_PIPELINE_ID $(pwd)/conda-reqs/conda-lock-reqs/conda-requirements-riscv-tools-linux-64.conda-lock.yml
+    - conda activate /sim/gitlab-runner/envs/ci-env-$CI_PIPELINE_ID
+    # Install riscv-tools
+    - $(pwd)/scripts/build-toolchain-extra.sh riscv-tools -p $CONDA_PREFIX/riscv-tools
+    # Install CIRCT
+    - git submodule update --init $(pwd)/tools/install-circt
+    - $(pwd)/tools/install-circt/bin/download-release-or-nightly-circt.sh -f circt-full-static-linux-x64.tar.gz -i $CONDA_PREFIX/riscv-tools -v version-file -x $(pwd)/conda-reqs/circt.json -g "null"
+    # Update conda environment with Voyager's dependencies
+    - git submodule update --init --recursive generators/voyager
+    - conda env update -p /sim/gitlab-runner/envs/ci-env-$CI_PIPELINE_ID -f $(pwd)/generators/voyager/accelerator/environment.yml
+  rules:
+    - when: always

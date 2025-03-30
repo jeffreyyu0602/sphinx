@@ -1,0 +1,16 @@
+RTL Simulation:
+  stage: test
+  before_script:
+    - eval `modulecmd bash load base catapult/2024.2_2 vcs/T-2022.06-SP2 verdi/S-2021.09-SP1 dc_shell/U-2022.12-SP1`
+    - export VG_GNU_PACKAGE=/cad/synopsys/vcs_gnu_package/S-2021.09/gnu_9/linux
+    - source $VG_GNU_PACKAGE/source_me.sh
+    - export LD_LIBRARY_PATH=$CATAPULT_ROOT/lib:$CATAPULT_ROOT/shared/lib:$LD_LIBRARY_PATH
+    - export PATH=$HOME/miniforge3/condabin:$PATH
+    - source $(conda info --base)/etc/profile.d/conda.sh
+    - conda activate /sim/gitlab-runner/envs/ci-env-$CI_PIPELINE_ID
+  script:
+    - $(pwd)/scripts/init-submodules-no-riscv-tools.sh --minimal
+    - cd sims/vcs
+    - python run_voyager.py --models resnet18 --tests submodule_5 --config VoyagerConfig
+  rules:
+    - when: always
