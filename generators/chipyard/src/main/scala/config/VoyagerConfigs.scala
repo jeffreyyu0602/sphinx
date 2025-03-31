@@ -3,7 +3,7 @@ package chipyard
 import org.chipsalliance.cde.config.Config
 
 // Voyager-integrated configs
-class VoyagerConfig
+class E4M3x16x16
     extends Config(
       new voyager.WithVoyager("E4M3", 16, 16, 1024, 1024, 1024, 5.0, "generic") ++
         new chipyard.harness.WithVoyagerVerification ++
@@ -101,13 +101,13 @@ class AbstractConfig
           Seq(
             /** add a serial-tilelink interface */
             testchipip.serdes.SerialTLParams(
-              client = Some(
+              client    = Some(
                 testchipip.serdes.SerialTLClientParams(totalIdBits = 4)
               ), // serial-tilelink interface will master the FBUS, and support 4 idBits
               phyParams = testchipip.serdes.ExternalSyncSerialPhyParams(
                 phitWidth = 32,
-                flitWidth = 32
-              )  // serial-tilelink interface with 32 lanes
+                flitWidth = 32,
+              ), // serial-tilelink interface with 32 lanes
             )
           )
         ) ++
@@ -162,7 +162,7 @@ class AbstractConfig
         new testchipip.soc.WithSbusScratchpad(
           base = 0x40000000L,
           /** add 50 MiB on-chip scratchpad */
-          size = 1024 * 1024 * 1024
+          size = 1024 * 1024 * 1024,
         ) ++
 
         // Coherency settings
@@ -192,7 +192,7 @@ class AbstractConfig
             "uncore",
             /** create a "uncore" clock group tieing all the bus clocks together */
             Seq("sbus", "mbus", "pbus", "fbus", "cbus", "obus", "implicit", "clock_tap"),
-            Seq("tile")
+            Seq("tile"),
           )
         ) ++
 
