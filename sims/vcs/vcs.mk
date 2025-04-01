@@ -36,6 +36,7 @@ VCS_CC_OPTS = \
 	$(filter -l%,$(VCS_LDFLAGS))
 
 VCS_NONCC_OPTS = \
+	-j32 \
 	-notice \
 	-line \
 	+lint=all,noVCDE,noONGS,noUI \

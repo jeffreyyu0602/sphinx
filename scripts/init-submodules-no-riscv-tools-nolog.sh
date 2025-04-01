@@ -18,12 +18,17 @@ function usage
     echo ""
 }
 
+MINIMAL=false
+
 while test $# -gt 0
 do
    case "$1" in
         -h | -H | --help | help)
             usage
             exit 1
+            ;;
+        --minimal | -m) # Skip unnecessary submodules
+            MINIMAL=true
             ;;
         --force | -f | --skip-validate) # Deprecated flags
             ;;
@@ -105,25 +110,34 @@ cd "$RDIR"
 (
     # Non-recursive clone to exclude cva6 submods
     git submodule update --init generators/cva6
-    git -C generators/cva6 submodule update --init src/main/resources/cva6/vsrc/cva6
-    git -C generators/cva6/src/main/resources/cva6/vsrc/cva6 submodule update --init src/axi
-    git -C generators/cva6/src/main/resources/cva6/vsrc/cva6 submodule update --init src/axi_riscv_atomics
-    git -C generators/cva6/src/main/resources/cva6/vsrc/cva6 submodule update --init src/common_cells
-    git -C generators/cva6/src/main/resources/cva6/vsrc/cva6 submodule update --init src/fpga-support
-    git -C generators/cva6/src/main/resources/cva6/vsrc/cva6 submodule update --init src/riscv-dbg
-    git -C generators/cva6/src/main/resources/cva6/vsrc/cva6 submodule update --init src/register_interface
-    git -C generators/cva6/src/main/resources/cva6/vsrc/cva6 submodule update --init --recursive src/fpu
+    if not $MINIMAL; then
+        git -C generators/cva6 submodule update --init src/main/resources/cva6/vsrc/cva6
+        git -C generators/cva6/src/main/resources/cva6/vsrc/cva6 submodule update --init src/axi
+        git -C generators/cva6/src/main/resources/cva6/vsrc/cva6 submodule update --init src/axi_riscv_atomics
+        git -C generators/cva6/src/main/resources/cva6/vsrc/cva6 submodule update --init src/common_cells
+        git -C generators/cva6/src/main/resources/cva6/vsrc/cva6 submodule update --init src/fpga-support
+        git -C generators/cva6/src/main/resources/cva6/vsrc/cva6 submodule update --init src/riscv-dbg
+        git -C generators/cva6/src/main/resources/cva6/vsrc/cva6 submodule update --init src/register_interface
+        git -C generators/cva6/src/main/resources/cva6/vsrc/cva6 submodule update --init --recursive src/fpu
+    fi
+
     # Non-recursive clone to exclude nvdla submods
     git submodule update --init generators/nvdla
-    git -C generators/nvdla submodule update --init src/main/resources/hw
+    if not $MINIMAL; then
+        git -C generators/nvdla submodule update --init src/main/resources/hw
+    fi
 
     # Non-recursive clone to exclude ara submods
     git submodule update --init generators/ara
-    git -C generators/ara submodule update --init ara
+    if not $MINIMAL; then
+        git -C generators/ara submodule update --init ara
+    fi
 
     # Non-recursive clone to exclude gemmini-software
     git submodule update --init generators/gemmini
-    git -C generators/gemmini/ submodule update --init --recursive software/gemmini-rocc-tests
+    if not $MINIMAL; then
+        git -C generators/gemmini/ submodule update --init --recursive software/gemmini-rocc-tests
+    fi
 
     # Non-recursive clone
     git submodule update --init generators/rocket-chip
@@ -131,11 +145,13 @@ cd "$RDIR"
     # Non-recursive clone
     git submodule update --init generators/compress-acc
 
-    # Non-recursive clone
     git submodule update --init generators/vexiiriscv
-    git -C generators/vexiiriscv submodule update --init VexiiRiscv
-    git -C generators/vexiiriscv/VexiiRiscv submodule update --init ext/SpinalHDL
-    git -C generators/vexiiriscv/VexiiRiscv submodule update --init ext/rvls
+    if not $MINIMAL; then
+        # Non-recursive clone
+        git -C generators/vexiiriscv submodule update --init VexiiRiscv
+        git -C generators/vexiiriscv/VexiiRiscv submodule update --init ext/SpinalHDL
+        git -C generators/vexiiriscv/VexiiRiscv submodule update --init ext/rvls
+    fi
 
     # Minimal non-recursive clone to initialize sbt dependencies
     git submodule update --init sims/firesim

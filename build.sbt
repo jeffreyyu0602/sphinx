@@ -1,7 +1,7 @@
 import Tests._
 
-val chisel6Version = "6.5.0"
-val chiselTestVersion = "6.0.0"
+val chisel6Version         = "6.5.0"
+val chiselTestVersion      = "6.0.0"
 val scalaVersionFromChisel = "2.13.12"
 
 val chisel3Version = "3.6.1"
@@ -25,68 +25,59 @@ val chiselFirrtlMergeStrategy = CustomMergeStrategy.rename { dep =>
 }
 
 lazy val commonSettings = Seq(
-  organization := "edu.berkeley.cs",
-  version := "1.6",
-  scalaVersion := scalaVersionFromChisel,
-  assembly / test := {},
-  assembly / assemblyMergeStrategy := {
+  organization                           := "edu.berkeley.cs",
+  version                                := "1.6",
+  scalaVersion                           := scalaVersionFromChisel,
+  assembly / test                        := {},
+  assembly / assemblyMergeStrategy       := {
     case PathList("chisel3", "stage", xs @ _*) => chiselFirrtlMergeStrategy
-    case PathList("chisel", "stage", xs @ _*) => chiselFirrtlMergeStrategy
-    case PathList("firrtl", "stage", xs @ _*) => chiselFirrtlMergeStrategy
-    case PathList("META-INF", _*) => MergeStrategy.discard
+    case PathList("chisel", "stage", xs @ _*)  => chiselFirrtlMergeStrategy
+    case PathList("firrtl", "stage", xs @ _*)  => chiselFirrtlMergeStrategy
+    case PathList("META-INF", _*)              => MergeStrategy.discard
     // should be safe in JDK11: https://stackoverflow.com/questions/54834125/sbt-assembly-deduplicate-module-info-class
-    case x if x.endsWith("module-info.class") => MergeStrategy.discard
-    case x =>
+    case x if x.endsWith("module-info.class")  => MergeStrategy.discard
+    case x                                     =>
       val oldStrategy = (assembly / assemblyMergeStrategy).value
       oldStrategy(x)
   },
-  scalacOptions ++= Seq(
-    "-deprecation",
-    "-unchecked",
-    "-Ytasty-reader",
-    "-Ymacro-annotations"), // fix hierarchy API
-  unmanagedBase := (chipyardRoot / unmanagedBase).value,
-  allDependencies := {
+  scalacOptions ++= Seq("-deprecation", "-unchecked", "-Ytasty-reader", "-Ymacro-annotations"), // fix hierarchy API
+  unmanagedBase                          := (chipyardRoot / unmanagedBase).value,
+  allDependencies                        := {
     // drop specific maven dependencies in subprojects in favor of Chipyard's version
     val dropDeps = Seq(("edu.berkeley.cs", "rocketchip"))
     allDependencies.value.filterNot { dep =>
       dropDeps.contains((dep.organization, dep.name))
     }
   },
-  libraryDependencies += "com.lihaoyi" %% "sourcecode" % "0.3.1",
+  libraryDependencies += "com.lihaoyi"   %% "sourcecode"    % "0.3.1",
   libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-
-  exportJars := true,
-  resolvers ++= Seq(
-    Resolver.sonatypeRepo("snapshots"),
-    Resolver.sonatypeRepo("releases"),
-    Resolver.mavenLocal))
+  exportJars                             := true,
+  resolvers ++= Seq(Resolver.sonatypeRepo("snapshots"), Resolver.sonatypeRepo("releases"), Resolver.mavenLocal)
+)
 
 val rocketChipDir = file("generators/rocket-chip")
 
-/**
-  * It has been a struggle for us to override settings in subprojects.
-  * An example would be adding a dependency to rocketchip on midas's targetutils library,
-  * or replacing dsptools's maven dependency on chisel with the local chisel project.
+/** It has been a struggle for us to override settings in subprojects. An example would be adding a dependency to
+  * rocketchip on midas's targetutils library, or replacing dsptools's maven dependency on chisel with the local chisel
+  * project.
   *
-  * This function works around this by specifying the project's root at src/ and overriding
-  * scalaSource and resourceDirectory.
+  * This function works around this by specifying the project's root at src/ and overriding scalaSource and
+  * resourceDirectory.
   */
 def freshProject(name: String, dir: File): Project = {
   Project(id = name, base = dir / "src")
     .settings(
-      Compile / scalaSource := baseDirectory.value / "main" / "scala",
+      Compile / scalaSource       := baseDirectory.value / "main" / "scala",
       Compile / resourceDirectory := baseDirectory.value / "main" / "resources"
     )
 }
 
 // Fork each scala test for now, to work around persistent mutable state
 // in Rocket-Chip based generators
-def isolateAllTests(tests: Seq[TestDefinition]) = tests map { test =>
+def isolateAllTests(tests: Seq[TestDefinition]) = tests.map { test =>
   val options = ForkOptions()
   new Group(test.name, Seq(test), SubProcess(options))
 } toSeq
-
 
 lazy val chisel6Settings = Seq(
   libraryDependencies ++= Seq("org.chipsalliance" %% "chisel" % chisel6Version),
@@ -100,16 +91,15 @@ lazy val chisel3Settings = Seq(
 lazy val chiselSettings = chisel6Settings ++ Seq(
   libraryDependencies ++= Seq(
     "org.apache.commons" % "commons-lang3" % "3.12.0",
-    "org.apache.commons" % "commons-text" % "1.9"
+    "org.apache.commons" % "commons-text"  % "1.9"
   )
 )
 
-lazy val scalaTestSettings =  Seq(
+lazy val scalaTestSettings = Seq(
   libraryDependencies ++= Seq(
     "org.scalatest" %% "scalatest" % "3.2.+" % "test"
   )
 )
-
 
 // Subproject definitions begin
 
@@ -121,7 +111,7 @@ lazy val hardfloat = freshProject("hardfloat", file("generators/hardfloat/hardfl
   .dependsOn(midas_target_utils)
   .settings(scalaTestSettings)
 
-lazy val rocketMacros  = (project in rocketChipDir / "macros")
+lazy val rocketMacros = (project in rocketChipDir / "macros")
   .settings(commonSettings)
   .settings(scalaTestSettings)
 
@@ -131,20 +121,19 @@ lazy val diplomacy = freshProject("diplomacy", file("generators/diplomacy/diplom
   .settings(chiselSettings)
   .settings(Compile / scalaSource := baseDirectory.value / "diplomacy")
 
-lazy val rocketchip = freshProject("rocketchip", rocketChipDir)
+lazy val rocketchip    = freshProject("rocketchip", rocketChipDir)
   .dependsOn(hardfloat, rocketMacros, diplomacy, cde)
   .settings(commonSettings)
   .settings(chiselSettings)
   .settings(scalaTestSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.lihaoyi" %% "mainargs" % "0.5.0",
-      "org.json4s" %% "json4s-jackson" % "4.0.5",
-      "org.scala-graph" %% "graph-core" % "1.13.5"
+      "com.lihaoyi"     %% "mainargs"       % "0.5.0",
+      "org.json4s"      %% "json4s-jackson" % "4.0.5",
+      "org.scala-graph" %% "graph-core"     % "1.13.5"
     )
   )
 lazy val rocketLibDeps = (rocketchip / Keys.libraryDependencies)
-
 
 // -- Chipyard-managed External Projects --
 
@@ -154,11 +143,35 @@ lazy val testchipip = (project in file("generators/testchipip"))
   .settings(commonSettings)
 
 lazy val chipyard = (project in file("generators/chipyard"))
-  .dependsOn(testchipip, rocketchip, boom, rocketchip_blocks, rocketchip_inclusive_cache,
-    dsptools, rocket_dsp_utils,
-    gemmini, icenet, tracegen, cva6, nvdla, sodor, ibex, fft_generator,
-    constellation, mempress, barf, shuttle, caliptra_aes, rerocc,
-    compressacc, saturn, ara, firrtl2_bridge, vexiiriscv)
+  .dependsOn(
+    testchipip,
+    rocketchip,
+    boom,
+    rocketchip_blocks,
+    rocketchip_inclusive_cache,
+    dsptools,
+    rocket_dsp_utils,
+    gemmini,
+    icenet,
+    tracegen,
+    cva6,
+    nvdla,
+    sodor,
+    ibex,
+    fft_generator,
+    constellation,
+    mempress,
+    barf,
+    shuttle,
+    caliptra_aes,
+    rerocc,
+    compressacc,
+    saturn,
+    ara,
+    firrtl2_bridge,
+    vexiiriscv,
+    voyager
+  )
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(
     libraryDependencies ++= Seq(
@@ -286,11 +299,12 @@ lazy val dsptools = freshProject("dsptools", file("./tools/dsptools"))
     scalaTestSettings,
     libraryDependencies ++= Seq(
       "edu.berkeley.cs" %% "chiseltest" % chiselTestVersion,
-      "org.typelevel" %% "spire" % "0.18.0",
-      "org.scalanlp" %% "breeze" % "2.1.0",
-      "junit" % "junit" % "4.13" % "test",
-      "org.scalacheck" %% "scalacheck" % "1.14.3" % "test",
-  ))
+      "org.typelevel"   %% "spire"      % "0.18.0",
+      "org.scalanlp"    %% "breeze"     % "2.1.0",
+      "junit"            % "junit"      % "4.13"   % "test",
+      "org.scalacheck"  %% "scalacheck" % "1.14.3" % "test"
+    )
+  )
 
 lazy val cde = (project in file("tools/cde"))
   .settings(commonSettings)
@@ -307,9 +321,7 @@ lazy val rocketchip_blocks = (project in file("generators/rocket-chip-blocks"))
   .settings(commonSettings)
 
 lazy val rocketchip_inclusive_cache = (project in file("generators/rocket-chip-inclusive-cache"))
-  .settings(
-    commonSettings,
-    Compile / scalaSource := baseDirectory.value / "design/craft")
+  .settings(commonSettings, Compile / scalaSource := baseDirectory.value / "design/craft")
   .dependsOn(rocketchip)
   .settings(libraryDependencies ++= rocketLibDeps.value)
 
@@ -329,27 +341,25 @@ lazy val firrtl2 = freshProject("firrtl2", file("./tools/firrtl2"))
   .enablePlugins(Antlr4Plugin)
   .settings(commonSettings)
   .settings(
-    sourceDirectory := file("./tools/firrtl2/src"),
-    scalacOptions ++= Seq(
-      "-language:reflectiveCalls",
-      "-language:existentials",
-      "-language:implicitConversions"),
+    sourceDirectory            := file("./tools/firrtl2/src"),
+    scalacOptions ++= Seq("-language:reflectiveCalls", "-language:existentials", "-language:implicitConversions"),
     libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % "3.2.14" % "test",
-      "org.scalatestplus" %% "scalacheck-1-15" % "3.2.11.0" % "test",
-      "com.github.scopt" %% "scopt" % "4.1.0",
-      "org.json4s" %% "json4s-native" % "4.1.0-M4",
-      "org.apache.commons" % "commons-text" % "1.10.0",
-      "com.lihaoyi" %% "os-lib" % "0.8.1",
-      "org.scala-lang.modules" %% "scala-parallel-collections" % "1.0.4"),
-    Antlr4 / antlr4GenVisitor := true,
+      "org.scalatest"          %% "scalatest"                  % "3.2.14"   % "test",
+      "org.scalatestplus"      %% "scalacheck-1-15"            % "3.2.11.0" % "test",
+      "com.github.scopt"       %% "scopt"                      % "4.1.0",
+      "org.json4s"             %% "json4s-native"              % "4.1.0-M4",
+      "org.apache.commons"      % "commons-text"               % "1.10.0",
+      "com.lihaoyi"            %% "os-lib"                     % "0.8.1",
+      "org.scala-lang.modules" %% "scala-parallel-collections" % "1.0.4"
+    ),
+    Antlr4 / antlr4GenVisitor  := true,
     Antlr4 / antlr4GenListener := true,
     Antlr4 / antlr4PackageName := Option("firrtl2.antlr"),
-    Antlr4 / antlr4Version := "4.9.3",
-    Antlr4 / javaSource := (Compile / sourceManaged).value,
-    buildInfoPackage := "firrtl2",
-    buildInfoUsePackageAsPath := true,
-    buildInfoKeys := Seq[BuildInfoKey](buildInfoPackage, version, scalaVersion, sbtVersion)
+    Antlr4 / antlr4Version     := "4.9.3",
+    Antlr4 / javaSource        := (Compile / sourceManaged).value,
+    buildInfoPackage           := "firrtl2",
+    buildInfoUsePackageAsPath  := true,
+    buildInfoKeys              := Seq[BuildInfoKey](buildInfoPackage, version, scalaVersion, sbtVersion)
   )
 
 lazy val firrtl2_bridge = freshProject("firrtl2_bridge", file("./tools/firrtl2/bridge"))
@@ -383,7 +393,7 @@ lazy val firesim_lib = (project in firesimDir / "sim/firesim-lib")
 lazy val firechip_bridgeinterfaces = (project in file("generators/firechip/bridgeinterfaces"))
   .settings(
     chiselSettings,
-    commonSettings,
+    commonSettings
   )
 
 // Target-side bridge definitions, CC files, etc used for FireSim.
@@ -393,7 +403,7 @@ lazy val firechip_bridgestubs = (project in file("generators/firechip/bridgestub
   .settings(
     chiselSettings,
     commonSettings,
-    Test / testGrouping := isolateAllTests( (Test / definedTests).value ),
+    Test / testGrouping := isolateAllTests((Test / definedTests).value),
     Test / testOptions += Tests.Argument("-oF")
   )
   .settings(scalaTestSettings)
@@ -404,7 +414,12 @@ lazy val firechip = (project in file("generators/firechip/chip"))
   .settings(
     chiselSettings,
     commonSettings,
-    Test / testGrouping := isolateAllTests( (Test / definedTests).value ),
+    Test / testGrouping := isolateAllTests((Test / definedTests).value),
     Test / testOptions += Tests.Argument("-oF")
   )
   .settings(scalaTestSettings)
+
+lazy val voyager = (project in file("generators/voyager"))
+  .dependsOn(rocketchip, testchipip)
+  .settings(libraryDependencies ++= rocketLibDeps.value)
+  .settings(commonSettings)
