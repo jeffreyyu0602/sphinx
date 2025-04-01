@@ -160,3 +160,6 @@
 [submodule "generators/hyperram"]
 	path = generators/hyperram
 	url = git@code.stanford.edu:tsmc7/sphinx/hyperram.git
+[submodule "generators/chipyard/src/main/resources/vsrc/base-soc"]
+	path = generators/chipyard/src/main/resources/vsrc/base-soc
+	url = git@code.stanford.edu:tambe-lab/base-soc.git
