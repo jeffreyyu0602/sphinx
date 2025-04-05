@@ -12,7 +12,7 @@ import chipyard.stage.phases.TargetDirKey
 import chipyard.harness.{ApplyHarnessBinders, HarnessBinders}
 import chipyard.iobinders.HasChipyardPorts
 import chipyard.clocking.{SimplePllConfiguration, ClockDividerN}
-import chipyard.{ChipTop}
+import chipyard.{ChipTop, SimVPI}
 
 // -------------------------------
 // Chipyard Test Harness
@@ -102,6 +102,8 @@ trait HasHarnessInstantiators {
         case _ =>
       })
     }
+
+    success := SimVPI.connect(harnessBinderClock, harnessBinderReset, 0)
 
     val harnessBinderClk = harnessClockInstantiator.requestClockMHz("harnessbinder_clock", getHarnessBinderClockFreqMHz)
     println(s"Harness binder clock is $harnessBinderClockFreq")

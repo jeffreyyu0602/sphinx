@@ -382,26 +382,26 @@ class WithResetFromHarness
       }
     })
 
-class WithSimHyperRAM
-    extends HarnessBinder({
-      case (th: HasHarnessInstantiators, port: HyperRAMPort, chipId: Int) => {
-        val simHyperRAM = Module(new s80ks2562)
-        simHyperRAM.io.DQ0 <> port.io.DQ(0)
-        simHyperRAM.io.DQ1 <> port.io.DQ(1)
-        simHyperRAM.io.DQ2 <> port.io.DQ(2)
-        simHyperRAM.io.DQ3 <> port.io.DQ(3)
-        simHyperRAM.io.DQ4 <> port.io.DQ(4)
-        simHyperRAM.io.DQ5 <> port.io.DQ(5)
-        simHyperRAM.io.DQ6 <> port.io.DQ(6)
-        simHyperRAM.io.DQ7 <> port.io.DQ(7)
-        simHyperRAM.io.RWDS <> port.io.RWDS
+// class WithSimHyperRAM
+//     extends HarnessBinder({
+//       case (th: HasHarnessInstantiators, port: HyperRAMPort, chipId: Int) => {
+//         val simHyperRAM = Module(new s80ks2562)
+//         simHyperRAM.io.DQ0 <> port.io.DQ(0)
+//         simHyperRAM.io.DQ1 <> port.io.DQ(1)
+//         simHyperRAM.io.DQ2 <> port.io.DQ(2)
+//         simHyperRAM.io.DQ3 <> port.io.DQ(3)
+//         simHyperRAM.io.DQ4 <> port.io.DQ(4)
+//         simHyperRAM.io.DQ5 <> port.io.DQ(5)
+//         simHyperRAM.io.DQ6 <> port.io.DQ(6)
+//         simHyperRAM.io.DQ7 <> port.io.DQ(7)
+//         simHyperRAM.io.RWDS <> port.io.RWDS
 
-        simHyperRAM.io.CK       := port.io.CK.asClock
-        simHyperRAM.io.CKn      := port.io.CKn.asClock
-        simHyperRAM.io.CSNeg    := port.io.CSn
-        simHyperRAM.io.RESETNeg := port.io.RESETn
-      }
-    })
+//         simHyperRAM.io.CK       := port.io.CK.asClock
+//         simHyperRAM.io.CKn      := port.io.CKn.asClock
+//         simHyperRAM.io.CSNeg    := port.io.CSn
+//         simHyperRAM.io.RESETNeg := port.io.RESETn
+//       }
+//     })
 
 class WithD2TiedOff
     extends HarnessBinder({

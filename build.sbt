@@ -186,7 +186,7 @@ lazy val chipyard = (project in file("generators/chipyard"))
     ara,
     firrtl2_bridge,
     vexiiriscv,
-    hyperram
+    hyperram,
   )
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(
