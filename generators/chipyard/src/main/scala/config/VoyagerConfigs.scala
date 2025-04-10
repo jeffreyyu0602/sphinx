@@ -11,6 +11,78 @@ class E4M3x16x16
         new VoyagerRocketConfig
     )
 
+class Posit8x16x16
+    extends Config(
+      new voyager.WithVoyager("P8_1", 16, 16, 1024, 1024, 1024, 5.0, "generic") ++
+        new chipyard.harness.WithVoyagerVerification ++
+        new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new VoyagerRocketConfig
+    )
+
+class INT8x16x16
+    extends Config(
+      new voyager.WithVoyager("INT8", 16, 16, 1024, 1024, 1024, 5.0, "generic") ++
+        new chipyard.harness.WithVoyagerVerification ++
+        new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new VoyagerRocketConfig
+    )
+
+class MXINT8x16x16
+    extends Config(
+      new voyager.WithVoyager("MXINT8", 16, 16, 1024, 1024, 1024, 5.0, "generic", "E8M0") ++
+        new chipyard.harness.WithVoyagerVerification ++
+        new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new VoyagerRocketConfig
+    )
+
+class E4M3x32x64
+    extends Config(
+      new voyager.WithVoyager("E4M3", 32, 64, 1024, 1024, 1024, 5.0, "generic") ++
+        new chipyard.harness.WithVoyagerVerification ++
+        new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new VoyagerRocketConfig
+    )
+
+class E4M3x32x32
+    extends Config(
+      new voyager.WithVoyager("E4M3", 32, 32, 1024, 1024, 1024, 5.0, "generic") ++
+        new chipyard.harness.WithVoyagerVerification ++
+        new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new VoyagerRocketConfig
+    )
+
+class E4M3x16x32
+    extends Config(
+      new voyager.WithVoyager("E4M3", 16, 32, 1024, 1024, 1024, 5.0, "generic") ++
+        new chipyard.harness.WithVoyagerVerification ++
+        new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new VoyagerRocketConfig
+    )
+
+class E4M3x8x16
+    extends Config(
+      new voyager.WithVoyager("E4M3", 8, 16, 1024, 1024, 1024, 5.0, "generic") ++
+        new chipyard.harness.WithVoyagerVerification ++
+        new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new VoyagerRocketConfig
+    )
+
+class E4M3x8x8
+    extends Config(
+      new voyager.WithVoyager("E4M3", 8, 8, 1024, 1024, 1024, 5.0, "generic") ++
+        new chipyard.harness.WithVoyagerVerification ++
+        new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new VoyagerRocketConfig
+    )
+
+class E4M3x4x8
+    extends Config(
+      new voyager.WithVoyager("E4M3", 4, 8, 1024, 1024, 1024, 5.0, "generic") ++
+        new chipyard.harness.WithVoyagerVerification ++
+        new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new VoyagerRocketConfig
+    )
+
 class VoyagerDebugConfig
     extends Config(
       new voyager.WithVoyager("E4M3", 16, 16, 1024, 1024, 1024, 5.0, "generic") ++

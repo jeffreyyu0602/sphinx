@@ -1,4 +1,4 @@
-RTL Simulation (E4M3, 16x16):
+.rtl_simulation_template:
   stage: test
   before_script:
     - eval `modulecmd bash load base catapult/2024.2_2 vcs/T-2022.06-SP2 verdi/S-2021.09-SP1 dc_shell/U-2022.12-SP1`
@@ -8,11 +8,9 @@ RTL Simulation (E4M3, 16x16):
     - export PATH=$HOME/miniforge3/condabin:$PATH
     - source $(conda info --base)/etc/profile.d/conda.sh
     - conda activate /sim/gitlab-runner/envs/ci-env-$CI_PIPELINE_ID
-  script:
     - $(pwd)/scripts/init-submodules-no-riscv-tools.sh --minimal
     - $(pwd)/scripts/build-libgloss.sh riscv-tools -p $CONDA_PREFIX/riscv-tools
     - cd sims/vcs
-    - python run_voyager.py --models resnet18 --config E4M3x16x16 --num_processes 32
   rules:
     - when: always
   artifacts:
@@ -22,3 +20,28 @@ RTL Simulation (E4M3, 16x16):
     expire_in: 1 month
   variables:
     GIT_STRATEGY: clone
+
+RTL Simulation (E4M3, 16x16):
+  extends: .rtl_simulation_template
+  script:
+    - python run_voyager.py --models resnet18 --config E4M3x16x16 --num_processes 32
+
+RTL Simulation (MXINT8, 16x16):
+  extends: .rtl_simulation_template
+  script:
+    - python run_voyager.py --models resnet18 --config MXINT8x16x16 --num_processes 32
+
+RTL Simulation (INT8, 16x16):
+  extends: .rtl_simulation_template
+  script:
+    - python run_voyager.py --models resnet18 --config INT8x16x16 --num_processes 32
+
+RTL Simulation (E4M3, 32x32):
+  extends: .rtl_simulation_template
+  script:
+    - python run_voyager.py --models resnet18 --config E4M3x32x32 --num_processes 32
+
+RTL Simulation (E4M3, 16x32):
+  extends: .rtl_simulation_template
+  script:
+    - python run_voyager.py --models resnet18 --config E4M3x16x32 --num_processes 32
