@@ -1,0 +1,522 @@
+[
+  {
+    "type": "sram",
+    "name": "TS1N7SBSVTA2048X64M8WZHOCP",
+    "family": "1rw",
+    "depth": "2048",
+    "width": 64,
+    "ports": [
+      {
+        "chip enable port name": "CEB",
+        "chip enable port polarity": "active low",
+        "clock port name": "CLK",
+        "clock port polarity": "positive edge",
+        "address port name": "A",
+        "address port polarity": "active high",
+        "write enable port polarity": "active low",
+        "write enable port name": "WEB",
+        "mask granularity": 1,
+        "mask port name": "BWEB",
+        "mask port polarity": "active low",
+        "input port name": "D",
+        "input port polarity": "active high",
+        "output port polarity": "active high",
+        "output port name": "Q"
+      }
+    ],
+    "extra ports": [
+      {
+        "name": "SD",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "DSLP",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "PUDELAY_SD",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "PUDELAY_DSLP",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "FADIO",
+        "width": 6,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "REDENIO",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "SE",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "DFTBYP",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "SIC",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "SID",
+        "width": 2,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "SOC",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "SOD",
+        "width": 2,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "DSLPLV",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "RTSEL",
+        "width": 2,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "WTSEL",
+        "width": 2,
+        "type": "constant",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "type": "sram",
+    "name": "TS1N7SBSVTA64X168M2WZHOCP",
+    "family": "1rw",
+    "depth": "64",
+    "width": 168,
+    "ports": [
+      {
+        "chip enable port name": "CEB",
+        "chip enable port polarity": "active low",
+        "clock port name": "CLK",
+        "clock port polarity": "positive edge",
+        "address port name": "A",
+        "address port polarity": "active high",
+        "write enable port polarity": "active low",
+        "write enable port name": "WEB",
+        "mask granularity": 1,
+        "mask port name": "BWEB",
+        "mask port polarity": "active low",
+        "input port name": "D",
+        "input port polarity": "active high",
+        "output port polarity": "active high",
+        "output port name": "Q"
+      }
+    ],
+    "extra ports": [
+      {
+        "name": "DSLP",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "SD",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "PUDELAY_SD",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "PUDELAY_DSLP",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "FADIO",
+        "width": 7,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "REDENIO",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "SE",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "DFTBYP",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "SIC",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "SID",
+        "width": 2,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "SOC",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "SOD",
+        "width": 2,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "DSLPLV",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "RTSEL",
+        "width": 2,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "WTSEL",
+        "width": 2,
+        "type": "constant",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "type": "sram",
+    "name": "TS1N7SBSVTA512X256M2WZHOCP",
+    "family": "1rw",
+    "depth": "512",
+    "width": 256,
+    "ports": [
+      {
+        "chip enable port name": "CEB",
+        "chip enable port polarity": "active low",
+        "clock port name": "CLK",
+        "clock port polarity": "positive edge",
+        "address port name": "A",
+        "address port polarity": "active high",
+        "write enable port polarity": "active low",
+        "write enable port name": "WEB",
+        "mask granularity": 1,
+        "mask port name": "BWEB",
+        "mask port polarity": "active low",
+        "input port name": "D",
+        "input port polarity": "active high",
+        "output port polarity": "active high",
+        "output port name": "Q"
+      }
+    ],
+    "extra ports": [
+      {
+        "name": "DSLP",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "SD",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "PUDELAY_SD",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "PUDELAY_DSLP",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "FADIO",
+        "width": 7,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "REDENIO",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "SE",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "DFTBYP",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "SIC",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "SID",
+        "width": 2,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "SOC",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "SOD",
+        "width": 2,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "DSLPLV",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "RTSEL",
+        "width": 2,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "WTSEL",
+        "width": 2,
+        "type": "constant",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "type": "sram",
+    "name": "TS1N7MBSVTB8192X64M8QWBZHODXCPL",
+    "family": "1rw",
+    "depth": "8192",
+    "width": 64,
+    "ports": [
+      {
+        "chip enable port name": "CEB",
+        "chip enable port polarity": "active low",
+        "clock port name": "CLK",
+        "clock port polarity": "positive edge",
+        "address port name": "A",
+        "address port polarity": "active high",
+        "write enable port polarity": "active low",
+        "write enable port name": "WEB",
+        "mask granularity": 1,
+        "mask port name": "BWEB",
+        "mask port polarity": "active low",
+        "input port name": "D",
+        "input port polarity": "active high",
+        "output port polarity": "active high",
+        "output port name": "Q"
+      }
+    ],
+    "extra ports": [
+      {
+        "name": "SD",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "DSLP",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "PUDELAY_SD",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "PUDELAY_DSLP",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "BIST",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "CEBM",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "WEBM",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "AM",
+        "width": 13,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "BWEBM",
+        "width": 64,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "DM",
+        "width": 64,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "FADIO",
+        "width": 6,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "REDENIO",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "SE",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "DFTBYP",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "SIC",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "SID",
+        "width": 2,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "SOC",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "SOD",
+        "width": 2,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "DSLPLV",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "RTSEL",
+        "width": 2,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "WTSEL",
+        "width": 2,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "WASEN",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
+        "name": "WASSEL",
+        "width": 2,
+        "type": "constant",
+        "value": 0
+      }
+    ]
+  }
+]

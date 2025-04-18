@@ -15,9 +15,10 @@ import testchipip.soc.{BankedScratchpadKey}
 class AtomicScratchpadBank(subBanks: Int, address: AddressSet, beatBytes: Int, devOverride: MemoryDevice, buffer: BufferParams)(implicit p: Parameters) extends ClockSinkDomain(ClockSinkParameters())(p) {
   val mask = (subBanks - 1) * p(CacheBlockBytes)
   val xbar = TLXbar()
+  val bankSize = (address.mask + 1) / subBanks
   (0 until subBanks).map { sb =>
     val ram = LazyModule(new TLRAM(
-      address = AddressSet(address.base + sb * p(CacheBlockBytes), address.mask - mask),
+      address = AddressSet(address.base + sb * bankSize, bankSize - 1),
       atomics = true,
       beatBytes = beatBytes,
       devOverride = Some(devOverride)) {
@@ -62,4 +63,3 @@ trait CanHaveAtomicBankedScratchpad { this: BaseSubsystem =>
     if (params.disableMonitors) DisableMonitors { implicit p => genBanks()(p) } else genBanks()
   }
 }
-

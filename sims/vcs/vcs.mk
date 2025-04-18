@@ -53,7 +53,8 @@ VCS_NONCC_OPTS = \
 	-debug_pp \
 	-top $(TB) \
 	+incdir+$(GEN_COLLATERAL_DIR) \
-	$(addprefix +incdir+,$(EXT_INCDIRS))
+	$(addprefix +incdir+,$(EXT_INCDIRS)) \
+	+vcs+initreg+random
 
 VCS_PREPROC_DEFINES = \
 	+define+VCS

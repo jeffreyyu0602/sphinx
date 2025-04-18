@@ -14,7 +14,8 @@ class WithTSMC7IOCell extends Config((site, here, up) => {
 class WithMyBootROM extends Config((site, here, up) => {
   case BootROMLocated(InSubsystem) =>
     Some(BootROMParams(
-      contentFileName = "generators/chipyard/src/main/resources/bootrom/bootrom.rv64.img"
+      contentFileName = "generators/chipyard/src/main/resources/bootrom/bootrom.rv64.img",
+      hang = 0x10000,
     ))
 })
 
@@ -33,8 +34,8 @@ class SphinxConfig
       new freechips.rocketchip.subsystem.WithoutTLMonitors ++
       new testchipip.soc.WithSbusScratchpad(
         base = 0x40000000L,
-        /** add 50 MiB on-chip scratchpad */
-        size = 50 * 1024 * 1024
+        size = 2 * 1024 * 1024,
+        subBanks = 32,
       ) ++
       new testchipip.serdes.WithNoSerialTL ++
       new testchipip.boot.WithNoCustomBootPin ++
