@@ -232,8 +232,6 @@ def main():
     env_vars["PROJECT_ROOT"] = ACCELERATOR_DIR
     env_vars["CODEGEN_DIR"] = "test/compiler"
     env_vars["NETWORK"] = args.models[0]
-    # Set the memory banking configuration for the compiler
-    env_vars["EXTRA_COMPILER_FLAGS"] = "--bank_width 256"
 
     # Generate SoC verilog
     print("Generating verilog...")
@@ -255,6 +253,26 @@ def main():
                 # Remove surrounding quotes if present
                 val = val.strip("'\"")
                 env_vars[var] = val
+
+    # Set the memory banking configuration for the compiler
+    # accesses need to be aligned to accelerator's data width
+    # width of datatype * 2 * max(IC,OC)
+    if env_vars["DATATYPE"] == "E4M3":
+        datatype_width = 8
+    elif env_vars["DATATYPE"] == "INT8":
+        datatype_width = 8
+    elif env_vars["DATATYPE"] == "MXINT8":
+        datatype_width = 8
+    else:
+        raise ValueError(
+            f"Unknown width for DATATYPE: {env_vars['DATATYPE']}. Please add it to run_voyager.py"
+        )
+    banking_width = (
+        datatype_width
+        * 2
+        * max(int(env_vars["IC_DIMENSION"]), int(env_vars["OC_DIMENSION"]))
+    )
+    env_vars["EXTRA_COMPILER_FLAGS"] = f"--bank_width {banking_width}"
 
     # Compile the model(s) and get list of layers
     layers = {}
