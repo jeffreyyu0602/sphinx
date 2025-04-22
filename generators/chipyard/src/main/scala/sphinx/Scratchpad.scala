@@ -1,4 +1,4 @@
-package chipyard
+package chipyard.sphinx
 
 import chisel3._
 

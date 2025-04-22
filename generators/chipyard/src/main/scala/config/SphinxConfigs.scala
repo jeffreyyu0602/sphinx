@@ -1,15 +1,9 @@
 package chipyard
 
 import chisel3._
-import org.chipsalliance.cde.config.Config
-import chipyard.iobinders.IOCellKey
-import chipyard.iocell.TSMC7IOCellParams
+import org.chipsalliance.cde.config._
 import freechips.rocketchip.devices.tilelink.{BootROMLocated, BootROMParams}
 import freechips.rocketchip.subsystem.{InSubsystem}
-
-class WithTSMC7IOCell extends Config((site, here, up) => {
-  case IOCellKey => TSMC7IOCellParams()
-})
 
 class WithMyBootROM extends Config((site, here, up) => {
   case BootROMLocated(InSubsystem) =>
@@ -24,7 +18,9 @@ case class WithDigitalTopName(name: String) extends Config((site, here, up) => {
 class SphinxConfig
     extends Config(
       new WithMyBootROM ++
-      new WithTSMC7IOCell ++
+      new chipyard.sphinx.WithTSMC7IOCells ++
+      new chipyard.sphinx.WithTSMC7ChipTop ++
+      new chipyard.sphinx.WithGPIODriver ++
       new chipyard.harness.WithSphinxSelected ++
       new chipyard.harness.WithD2TiedOff ++
       new WithDigitalTopName("SphinxTop") ++
