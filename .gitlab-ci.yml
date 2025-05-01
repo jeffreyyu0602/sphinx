@@ -1,0 +1,13 @@
+stages:
+  - setup
+  - test
+  - cleanup
+
+variables:
+  GIT_SUBMODULE_STRATEGY: none
+  GIT_CLEAN_FLAGS: -ffdx
+
+include:
+  - local: .gitlab/ci/conda-setup.yml
+  - local: .gitlab/ci/rtl.yml
+  - local: .gitlab/ci/cleanup.yml

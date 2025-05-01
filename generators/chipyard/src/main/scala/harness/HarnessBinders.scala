@@ -26,6 +26,7 @@ import chipyard._
 import chipyard.clocking.HasChipyardPRCI
 import chipyard.iobinders._
 import hyperram._
+import voyager._
 
 case object HarnessBinders extends Field[HarnessBinderFunction]({ case _ => })
 
@@ -33,7 +34,7 @@ object ApplyHarnessBinders {
   def apply(
     th:         HasHarnessInstantiators,
     ports:      Seq[Port[_]],
-    chipId:     Int
+    chipId:     Int,
   )(
     implicit p: Parameters
   ): Unit = {
@@ -88,7 +89,7 @@ class WithSimBlockDevice
     extends HarnessBinder({
       case (th: HasHarnessInstantiators, port: BlockDevicePort, chipId: Int) => {
         val sim_blkdev = Module(new SimBlockDevice(port.params))
-        sim_blkdev.io.bdev <> port.io.bits
+        sim_blkdev.io.bdev  <> port.io.bits
         sim_blkdev.io.clock := port.io.clock
         sim_blkdev.io.reset := th.harnessBinderReset
       }
@@ -98,7 +99,7 @@ class WithBlockDeviceModel
     extends HarnessBinder({
       case (th: HasHarnessInstantiators, port: BlockDevicePort, chipId: Int) => {
         val blkdev_model = Module(new BlockDeviceModel(16, port.params))
-        blkdev_model.io <> port.io.bits
+        blkdev_model.io    <> port.io.bits
         blkdev_model.clock := port.io.clock
         blkdev_model.reset := th.harnessBinderReset
       }
@@ -140,12 +141,12 @@ class WithBlackBoxSimMem(additionalLatency: Int = 0)
 
         mem.io.clock := port.io.clock
         mem.io.reset := th.harnessBinderReset.asAsyncReset
-        mem.io.axi <> port.io.bits
+        mem.io.axi   <> port.io.bits
         // Bug in Chisel implementation. See https://github.com/chipsalliance/chisel3/pull/1781
         def Decoupled[T <: Data](irr: IrrevocableIO[T]): DecoupledIO[T] = {
           require(
             DataMirror.directionOf(irr.bits) == Direction.Output,
-            "Only safe to cast produced Irrevocable bits to Decoupled."
+            "Only safe to cast produced Irrevocable bits to Decoupled.",
           )
           val d = Wire(new DecoupledIO(chiselTypeOf(irr.bits)))
           d.bits    := irr.bits
@@ -155,16 +156,16 @@ class WithBlackBoxSimMem(additionalLatency: Int = 0)
         }
         if (additionalLatency > 0) {
           withClock(port.io.clock) {
-            mem.io.axi.aw <> (0 until additionalLatency).foldLeft(Decoupled(port.io.bits.aw))((t, _) =>
+            mem.io.axi.aw  <> (0 until additionalLatency).foldLeft(Decoupled(port.io.bits.aw))((t, _) =>
               Queue(t, 1, pipe = true)
             )
-            mem.io.axi.w <> (0 until additionalLatency).foldLeft(Decoupled(port.io.bits.w))((t, _) =>
+            mem.io.axi.w   <> (0 until additionalLatency).foldLeft(Decoupled(port.io.bits.w))((t, _) =>
               Queue(t, 1, pipe = true)
             )
             port.io.bits.b <> (0 until additionalLatency).foldLeft(Decoupled(mem.io.axi.b))((t, _) =>
               Queue(t, 1, pipe = true)
             )
-            mem.io.axi.ar <> (0 until additionalLatency).foldLeft(Decoupled(port.io.bits.ar))((t, _) =>
+            mem.io.axi.ar  <> (0 until additionalLatency).foldLeft(Decoupled(port.io.bits.ar))((t, _) =>
               Queue(t, 1, pipe = true)
             )
             port.io.bits.r <> (0 until additionalLatency).foldLeft(Decoupled(mem.io.axi.r))((t, _) =>
@@ -220,7 +221,7 @@ class WithSimJTAGDebug
           th.harnessBinderClock,
           th.harnessBinderReset.asBool,
           ~(th.harnessBinderReset.asBool),
-          dtm_success
+          dtm_success,
         )
       }
     })
@@ -273,7 +274,7 @@ class WithSerialTLTiedOff(tieoffs: Option[Seq[Int]] = None)
           case io: InternalSyncPhitIO =>
           case io: ExternalSyncPhitIO => io.clock_in := false.B.asClock
           case io: SourceSyncPhitIO   =>
-          case _ =>
+          case _                      =>
         }
       }
     })
@@ -298,7 +299,7 @@ class WithSimTSIOverSerialTL
             withClock(clock) {
               val ram = Module(LazyModule(new SerialRAM(port.serdesser, port.params)(port.serdesser.p)).module)
               ram.io.ser.in <> io.out
-              io.in <> ram.io.ser.out
+              io.in         <> ram.io.ser.out
 
               val success = SimTSI.connect(ram.io.tsi, clock, th.harnessBinderReset, chipId)
               when(success) { th.success := true.B }
@@ -321,9 +322,9 @@ class WithSimUARTToUARTTSI
       case (th: HasHarnessInstantiators, port: UARTTSIPort, chipId: Int) => {
         UARTAdapter.connect(
           Seq(port.io.uart),
-          baudrate = port.io.uart.c.initBaudRate,
+          baudrate       = port.io.uart.c.initBaudRate,
           clockFrequency = th.getHarnessBinderClockFreqHz.toInt,
-          forcePty = true
+          forcePty       = true,
         )
       }
     })
@@ -386,14 +387,14 @@ class WithSimHyperRAM
     extends HarnessBinder({
       case (th: HasHarnessInstantiators, port: HyperRAMPort, chipId: Int) => {
         val hyperram = Module(new s80ks5122)
-        hyperram.io.DQ0 <> port.io.DQ(0)
-        hyperram.io.DQ1 <> port.io.DQ(1)
-        hyperram.io.DQ2 <> port.io.DQ(2)
-        hyperram.io.DQ3 <> port.io.DQ(3)
-        hyperram.io.DQ4 <> port.io.DQ(4)
-        hyperram.io.DQ5 <> port.io.DQ(5)
-        hyperram.io.DQ6 <> port.io.DQ(6)
-        hyperram.io.DQ7 <> port.io.DQ(7)
+        hyperram.io.DQ0  <> port.io.DQ(0)
+        hyperram.io.DQ1  <> port.io.DQ(1)
+        hyperram.io.DQ2  <> port.io.DQ(2)
+        hyperram.io.DQ3  <> port.io.DQ(3)
+        hyperram.io.DQ4  <> port.io.DQ(4)
+        hyperram.io.DQ5  <> port.io.DQ(5)
+        hyperram.io.DQ6  <> port.io.DQ(6)
+        hyperram.io.DQ7  <> port.io.DQ(7)
         hyperram.io.RWDS <> port.io.RWDS
 
         hyperram.io.CK       := port.io.CK
@@ -414,5 +415,13 @@ class WithSphinxSelected
     extends HarnessBinder({
       case (th: HasHarnessInstantiators, port: D2MuxPort, chipId: Int) => {
         port.io := 0.U
+      }
+    })
+
+class WithVoyagerVerification
+    extends HarnessBinder({
+      case (th: HasHarnessInstantiators, port: ClockTapPort, chipId: Int) => {
+        val verification = Module(new VoyagerVerification)
+        verification.io.clock := th.harnessBinderClock
       }
     })

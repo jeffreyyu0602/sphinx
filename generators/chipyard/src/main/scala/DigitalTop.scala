@@ -46,9 +46,9 @@ class DigitalTop(
     with hyperram.CanHavePeripheryHyperRAM                     // Enables optionally adding a HyperRAM controller
     with sphinx.CanHavePeripheryGPIODriver
     with sphinx.CanHaveAtomicBankedScratchpad
-    {
+    with voyager.CanHavePeripheryVoyager {
   override lazy val desiredName = p(DigitalTopName)
-  override lazy val module      = new DigitalTopModule(this)
+  override lazy val module = new DigitalTopModule(this)
 }
 
 class DigitalTopModule(l: DigitalTop) extends ChipyardSystemModule(l) with freechips.rocketchip.util.DontTouch
