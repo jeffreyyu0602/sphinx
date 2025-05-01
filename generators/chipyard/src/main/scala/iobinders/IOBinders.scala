@@ -40,7 +40,7 @@ import testchipip.tsi.{CanHavePeripheryUARTTSI, UARTTSIIO}
 import icenet.{CanHavePeripheryIceNIC, NICIOvonly, NICKey, NicLoopback, SimNetwork}
 import chipyard.{CanHaveMasterTLMemPort, ChipyardSystem, ChipyardSystemModule}
 import chipyard.example.CanHavePeripheryGCD
-import hyperram.{CanHavePeripheryHyperRAM, HyperRAMIO, HyperRAMKey, HyperRAMTopIO}
+import hyperram.{CanHavePeripheryHyperRAM, HyperRAMIO, HyperRAMKey, HyperBusIO}
 
 import scala.reflect.ClassTag
 import chipyard.D2._
@@ -667,7 +667,7 @@ class WithGCDBusyPunchthrough
 
 class WithHyperRAMIOCells
     extends OverrideIOBinder({ (system: CanHavePeripheryHyperRAM) =>
-      system.hyperRAMIO
+      system.hyperram_tl
         .map({ hyperRAMIO =>
           val p = system.asInstanceOf[BaseSubsystem].p
 
@@ -737,33 +737,33 @@ class WithHyperRAMIOCells
           d2HyperRAMIO.CSn              := d2Top.io.HYPERRAM_CSN0
           d2HyperRAMIO.RESETn           := d2Top.io.HYPERRAM_RESETN
 
-          val hyperramPort = IO(new HyperRAMTopIO).suggestName("hyperram")
+          val hyperramPort = IO(new HyperBusIO).suggestName("hyperram")
 
           val ckIOCell = p(IOCellKey).output().suggestName("hyperram_CK")
-          ckIOCell.io.o  := Mux(designSelect, hyperRAMIO.CK.asBool, d2HyperRAMIO.CK.asBool)
+          ckIOCell.io.o  := Mux(designSelect, d2HyperRAMIO.CK.asBool, hyperRAMIO.CK.asBool)
           ckIOCell.io.oe := true.B
-          hyperramPort.CK <> ckIOCell.io.pad
+          hyperramPort.CK <> ckIOCell.io.pad.asClock
 
           val ckNIOCell = p(IOCellKey).output().suggestName("hyperram_CKn")
-          ckNIOCell.io.o  := Mux(designSelect, hyperRAMIO.CKn.asBool, d2HyperRAMIO.CKn.asBool)
+          ckNIOCell.io.o  := Mux(designSelect, d2HyperRAMIO.CKn.asBool, hyperRAMIO.CKn.asBool)
           ckNIOCell.io.oe := true.B
-          hyperramPort.CKn <> ckNIOCell.io.pad
+          hyperramPort.CKn <> ckNIOCell.io.pad.asClock
 
           val csNIOCell = p(IOCellKey).output().suggestName("hyperram_CSn")
-          csNIOCell.io.o  := Mux(designSelect, hyperRAMIO.CSn, d2HyperRAMIO.CSn)
+          csNIOCell.io.o  := Mux(designSelect, d2HyperRAMIO.CSn, hyperRAMIO.CSn)
           csNIOCell.io.oe := true.B
           hyperramPort.CSn <> csNIOCell.io.pad
 
           val resetNIOCell = p(IOCellKey).output().suggestName("hyperram_RESETn")
-          resetNIOCell.io.o  := Mux(designSelect, hyperRAMIO.RESETn, d2HyperRAMIO.RESETn)
+          resetNIOCell.io.o  := Mux(designSelect, d2HyperRAMIO.RESETn, hyperRAMIO.RESETn)
           resetNIOCell.io.oe := true.B
           hyperramPort.RESETn <> resetNIOCell.io.pad
 
           // DQ and RWDS are bidirectional, so then need special treatment
           val dqIOs = (0 until 8).map { j =>
             val iocell = p(IOCellKey).gpio().suggestName(s"hyperram_DQ_$j")
-            iocell.io.o          := Mux(designSelect, hyperRAMIO.DQ_o(j), d2HyperRAMIO.DQ_o(j))
-            iocell.io.oe         := Mux(designSelect, hyperRAMIO.DQ_oe, d2HyperRAMIO.DQ_oe)
+            iocell.io.o          := Mux(designSelect, d2HyperRAMIO.DQ_o(j), hyperRAMIO.DQ_o(j))
+            iocell.io.oe         := Mux(designSelect, d2HyperRAMIO.DQ_oe, hyperRAMIO.DQ_oe)
             iocell.io.ie         := true.B
             hyperRAMIO.DQ_i(j)   := iocell.io.i
             d2HyperRAMIO.DQ_i(j) := iocell.io.i
@@ -773,8 +773,8 @@ class WithHyperRAMIOCells
           }
 
           val rwds_iocell = p(IOCellKey).gpio().suggestName("hyperram_RWDS")
-          rwds_iocell.io.o    := Mux(designSelect, hyperRAMIO.RWDS_o, d2HyperRAMIO.RWDS_o)
-          rwds_iocell.io.oe   := Mux(designSelect, hyperRAMIO.RWDS_oe, d2HyperRAMIO.RWDS_oe)
+          rwds_iocell.io.o    := Mux(designSelect, d2HyperRAMIO.RWDS_o, hyperRAMIO.RWDS_o)
+          rwds_iocell.io.oe   := Mux(designSelect, d2HyperRAMIO.RWDS_oe, hyperRAMIO.RWDS_oe)
           rwds_iocell.io.ie   := true.B
           hyperRAMIO.RWDS_i   := rwds_iocell.io.i
           d2HyperRAMIO.RWDS_i := rwds_iocell.io.i

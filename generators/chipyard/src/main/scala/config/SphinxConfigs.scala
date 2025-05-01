@@ -24,9 +24,9 @@ class SphinxConfig
       new chipyard.harness.WithSphinxSelected ++
       new chipyard.harness.WithD2TiedOff ++
       new WithDigitalTopName("SphinxTop") ++
-      // new hyperram.WithHyperRAM ++
-      // new chipyard.harness.WithSimHyperRAM ++
-      // new chipyard.iobinders.WithHyperRAMIOCells ++
+      new hyperram.WithHyperRAM ++
+      new chipyard.harness.WithSimHyperRAM ++
+      new chipyard.iobinders.WithHyperRAMIOCells ++
       new freechips.rocketchip.subsystem.WithoutTLMonitors ++
       new testchipip.soc.WithSbusScratchpad(
         base = 0x40000000L,

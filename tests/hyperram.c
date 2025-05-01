@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdint.h>
+#include "mmio.h"
 
 #define HYPER_RAM_BASE 0x4000000
+#define HYPER_RAM_CTRL 0x3000000
 
 
 int main(void) {
@@ -11,6 +13,11 @@ int main(void) {
   for (int i = 0; i < 10000; i++) {
     asm volatile ("");
   }
+
+  printf("Setting up HyperRAM\n");
+  reg_write8(0x3000004, 9);
+  reg_write8(0x3000008, 23);
+  reg_write8(0x300000c, 3);
 
   volatile uint64_t* hyper_ram = (uint64_t*)HYPER_RAM_BASE;
 

@@ -53,5 +53,38 @@ module D2Top (
 );
 
 // Empty module
+  assign CRG_DIAG0 = 1'b0;
+  assign UART_M_TXD = 1'b0;
+  assign UART_M_RTS = 1'b0;
+  assign UART2_TXD = 1'b0;
+  assign NUART0_TXD = 1'b0;
+  assign GPIO0_0_PORTOUT = 1'b0;
+  assign GPIO0_0_PORTEN = 1'b0;
+  assign GPIO0_1_PORTOUT = 1'b0;
+  assign GPIO0_1_PORTEN = 1'b0;
+  assign GPIO0_2_PORTOUT = 1'b0;
+  assign GPIO0_2_PORTEN = 1'b0;
+  assign HYPERRAM_DQ_0_PORTOUT = 1'b0;
+  assign HYPERRAM_DQ_0_PORTEN = 1'b0;
+  assign HYPERRAM_DQ_1_PORTOUT = 1'b0;
+  assign HYPERRAM_DQ_1_PORTEN = 1'b0;
+  assign HYPERRAM_DQ_2_PORTOUT = 1'b0;
+  assign HYPERRAM_DQ_2_PORTEN = 1'b0;
+  assign HYPERRAM_DQ_3_PORTOUT = 1'b0;
+  assign HYPERRAM_DQ_3_PORTEN = 1'b0;
+  assign HYPERRAM_DQ_4_PORTOUT = 1'b0;
+  assign HYPERRAM_DQ_4_PORTEN = 1'b0;
+  assign HYPERRAM_DQ_5_PORTOUT = 1'b0;
+  assign HYPERRAM_DQ_5_PORTEN = 1'b0;
+  assign HYPERRAM_DQ_6_PORTOUT = 1'b0;
+  assign HYPERRAM_DQ_6_PORTEN = 1'b0;
+  assign HYPERRAM_DQ_7_PORTOUT = 1'b0;
+  assign HYPERRAM_DQ_7_PORTEN = 1'b0;
+  assign HYPERRAM_RWDS_PORTOUT = 1'b0;
+  assign HYPERRAM_RWDS_PORTEN = 1'b0;
+  assign HYPERRAM_RESETN = 1'b0;
+  assign HYPERRAM_CSN0 = 1'b0;
+  assign HYPERRAM_CK = 1'b0;
+  assign HYPERRAM_CKN = 1'b0;
 
 endmodule

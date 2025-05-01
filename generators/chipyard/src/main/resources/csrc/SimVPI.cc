@@ -115,8 +115,8 @@ void testchip_vpi_tsi_t::write_chunk(addr_t taddr, size_t nbytes,
 
     vpi_put_value(elem, &value, NULL, vpiNoDelay);
 
-    vpi_printf((PLI_BYTE8*)"Wrote 0x%02x to mem[%d][%d] byte offset %d\n", byte,
-               bank_idx, index, byte_offset);
+    // vpi_printf((PLI_BYTE8*)"Wrote 0x%02x to mem[%d][%d] byte offset %d\n", byte,
+    //            bank_idx, index, byte_offset);
   }
 }
 
@@ -153,8 +153,8 @@ void testchip_vpi_tsi_t::read_chunk(addr_t taddr, size_t nbytes, void* dst) {
 
     uint8_t byte_val = (reg_val >> (byte_offset * 8)) & 0xFF;
 
-    vpi_printf((PLI_BYTE8*)"Read mem[%d][%d] = %08x\n", bank_idx, index,
-               byte_val);
+    // vpi_printf((PLI_BYTE8*)"Read mem[%d][%d] = %08x\n", bank_idx, index,
+    //            byte_val);
 
     result[i] = byte_val;
   }
