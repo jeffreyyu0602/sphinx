@@ -160,3 +160,6 @@
 [submodule "generators/chipyard/src/main/resources/vsrc/base-soc"]
 	path = generators/chipyard/src/main/resources/vsrc/base-soc
 	url = git@code.stanford.edu:tambe-lab/base-soc.git
+[submodule "generators/voyager"]
+	path = generators/voyager
+	url = https://code.stanford.edu/voyager/voyager-soc-wrapper.git
