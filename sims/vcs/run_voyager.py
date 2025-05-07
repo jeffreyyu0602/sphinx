@@ -294,7 +294,7 @@ def main():
         ), "Only one model can be specified when using --tests"
         layers[args.models[0]] = args.tests.split(",")
 
-    config_path = f"{env_vars['DATATYPE']}/{env_vars['IC_DIMENSION']}x{env_vars['OC_DIMENSION']}_{env_vars['INPUT_BUFFER_SIZE']}x{env_vars['WEIGHT_BUFFER_SIZE']}x{env_vars['ACCUM_BUFFER_SIZE']}"
+    config_path = f"{env_vars['DATATYPE']}/{env_vars['IC_DIMENSION']}x{env_vars['OC_DIMENSION']}_{env_vars['INPUT_BUFFER_SIZE']}x{env_vars['WEIGHT_BUFFER_SIZE']}x{env_vars['ACCUM_BUFFER_SIZE']}_{env_vars['DOUBLE_BUFFERED_ACCUM_BUFFER']}"
 
     # Build the simulation binary
     print("Building the simulation binary...")
