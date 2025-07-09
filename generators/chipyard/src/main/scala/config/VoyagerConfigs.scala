@@ -8,6 +8,7 @@ class E4M3x16x16
       new voyager.WithVoyager("E4M3", 16, 16, 1024, 1024, 1024, 5.0, "generic") ++
         new chipyard.harness.WithVoyagerVerification ++
         new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new chipyard.config.WithSystemBusWidth(128) ++
         new VoyagerRocketConfig
     )
 
@@ -30,6 +31,14 @@ class INT8x16x16
 class MXINT8x16x16
     extends Config(
       new voyager.WithVoyager("MXINT8", 16, 16, 1024, 1024, 1024, 5.0, "generic", "E8M0") ++
+        new chipyard.harness.WithVoyagerVerification ++
+        new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new VoyagerRocketConfig
+    )
+
+class MXNF4x64x64
+    extends Config(
+      new voyager.WithVoyager("MXNF4", 64, 64, 256, 576, 256, 5.0, "generic", "E5M3") ++
         new chipyard.harness.WithVoyagerVerification ++
         new freechips.rocketchip.subsystem.WithoutTLMonitors ++
         new VoyagerRocketConfig
@@ -233,8 +242,10 @@ class AbstractConfig
         /** use default bootrom */
         new testchipip.soc.WithSbusScratchpad(
           base = 0x40000000L,
-          /** add 50 MiB on-chip scratchpad */
-          size = 1024 * 1024 * 1024,
+          /** add 2 MiB on-chip scratchpad */
+          size = 2 * 1024 * 1024,
+          banks = 8,
+          subBanks = 4,
         ) ++
 
         // Coherency settings

@@ -4,6 +4,7 @@ import argparse
 import datetime
 import multiprocessing as mp
 import pandas as pd
+import shlex
 import subprocess
 import re
 from deepdiff import DeepDiff
@@ -90,26 +91,29 @@ def run_rtl_simulation(model, layer, output_folder, env_vars, config_path, debug
     env_vars["NETWORK"] = model
     env_vars["TESTS"] = layer
 
+    cmd = [
+        (
+            f"./simv-chipyard.harness-{env_vars['CONFIG']}"
+            if not debug
+            else f"./simv-chipyard.harness-{env_vars['CONFIG']}-debug"
+        ),
+        "+permissive",
+        "+dramsim",
+        "+dramsim_ini_dir=../../generators/testchipip/src/main/resources/dramsim2_ini",
+        "+max-cycles=100000000000",
+        "+ntb_random_seed_automatic",
+        "+verbose",
+        f"+fsdbfile={output_folder}/{model}_{layer}.fsdb" if debug else "",
+        "+permissive-off",
+        f"../../tests/voyager/networks/{model}/{config_path}/{layer}.riscv",
+    ]
+
     with open(f"{output_folder}/{model}_{layer}.log", "w") as log_file, open(
         f"{output_folder}/{model}_{layer}.err", "w"
     ) as err_file:
+        log_file.write(" ".join(shlex.quote(arg) for arg in cmd) + "\n")
         subprocess.run(
-            [
-                (
-                    f"./simv-chipyard.harness-{env_vars['CONFIG']}"
-                    if not debug
-                    else f"./simv-chipyard.harness-{env_vars['CONFIG']}-debug"
-                ),
-                "+permissive",
-                "+dramsim",
-                "+dramsim_ini_dir=../../generators/testchipip/src/main/resources/dramsim2_ini",
-                "+max-cycles=10000000",
-                "+ntb_random_seed_automatic",
-                "+verbose",
-                f"+fsdbfile={output_folder}/{model}_{layer}.fsdb" if debug else "",
-                "+permissive-off",
-                f"../../tests/voyager/networks/{model}/{config_path}/{layer}.riscv",
-            ],
+            cmd,
             env=env_vars,
             stdout=log_file,
             stderr=err_file,
@@ -352,6 +356,8 @@ def main():
         datatype_width = 8
     elif env_vars["DATATYPE"] == "MXINT8":
         datatype_width = 8
+    elif env_vars["DATATYPE"] == "MXNF4":
+        datatype_width = 4
     else:
         raise ValueError(
             f"Unknown width for DATATYPE: {env_vars['DATATYPE']}. Please add it to run_voyager.py"
@@ -361,6 +367,10 @@ def main():
         * 2
         * max(int(env_vars["IC_DIMENSION"]), int(env_vars["OC_DIMENSION"]))
     )
+    env_vars["SOC_SIM"] = "1"
+    env_vars["CACHE_SIZE"] = "2097152"
+    env_vars["NUM_BANKS"] = "8"
+    env_vars["SPDLOG_LEVEL"] = "DEBUG"
     env_vars["EXTRA_COMPILER_FLAGS"] = f"--bank_width {banking_width}"
 
     # Compile the model(s) and get list of layers

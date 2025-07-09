@@ -19,7 +19,6 @@ class DigitalTop(
     with testchipip.boot.CanHavePeripheryCustomBootPin         // Enables optional custom boot pin
     with testchipip.boot.CanHavePeripheryBootAddrReg           // Use programmable boot address register
     with testchipip.cosim.CanHaveTraceIO                       // Enables optionally adding trace IO
-    with testchipip.soc.CanHaveBankedScratchpad                // Enables optionally adding a banked scratchpad
     with testchipip.iceblk.CanHavePeripheryBlockDevice         // Enables optionally adding the block device
     with testchipip.serdes.CanHavePeripheryTLSerial            // Enables optionally adding the tl-serial interface
     with testchipip.serdes.old.CanHavePeripheryTLSerial        // Enables optionally adding the DEPRECATED tl-serial interface
@@ -43,6 +42,7 @@ class DigitalTop(
     with constellation.soc.CanHaveGlobalNoC                    // Support instantiating a global NoC interconnect
     with rerocc.CanHaveReRoCCTiles                             // Support tiles that instantiate rerocc-attached accelerators
     with voyager.CanHavePeripheryVoyager                       // Enables adding a Voyager-based DNN accelerator
+    with voyager.CanHaveBankedScratchpad                       // Enables optionally adding a banked scratchpad
     {
   override lazy val module = new DigitalTopModule(this)
 }
