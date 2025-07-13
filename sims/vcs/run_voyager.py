@@ -100,7 +100,7 @@ def run_rtl_simulation(model, layer, output_folder, env_vars, config_path, debug
         "+permissive",
         "+dramsim",
         "+dramsim_ini_dir=../../generators/testchipip/src/main/resources/dramsim2_ini",
-        "+max-cycles=100000000000",
+        "+max-cycles=10000000000",
         "+ntb_random_seed_automatic",
         "+verbose",
         f"+fsdbfile={output_folder}/{model}_{layer}.fsdb" if debug else "",
@@ -362,16 +362,19 @@ def main():
         raise ValueError(
             f"Unknown width for DATATYPE: {env_vars['DATATYPE']}. Please add it to run_voyager.py"
         )
-    banking_width = (
+    bank_width = int(
         datatype_width
-        * 2
         * max(int(env_vars["IC_DIMENSION"]), int(env_vars["OC_DIMENSION"]))
+        / 8
     )
+    env_vars["EXTRA_COMPILER_FLAGS"] = f"--bank_width {bank_width}"
     env_vars["SOC_SIM"] = "1"
-    env_vars["CACHE_SIZE"] = "2097152"
-    env_vars["NUM_BANKS"] = "8"
-    env_vars["SPDLOG_LEVEL"] = "DEBUG"
-    env_vars["EXTRA_COMPILER_FLAGS"] = f"--bank_width {banking_width}"
+    env_vars.setdefault("CACHE_SIZE", "4194304")
+    env_vars.setdefault("NUM_BANKS", "8")
+    env_vars.setdefault("BANK_WIDTH", str(bank_width))
+    env_vars.setdefault("SPDLOG_LEVEL", "DEBUG")
+
+    print(env_vars)
 
     # Compile the model(s) and get list of layers
     layers = {}
@@ -391,7 +394,13 @@ def main():
         layers[args.models[0]] = args.tests.split(",")
         layer_counts[args.models[0]] = {layer: 1 for layer in layers[args.models[0]]}
 
-    config_path = f"{env_vars['DATATYPE']}/{env_vars['IC_DIMENSION']}x{env_vars['OC_DIMENSION']}_{env_vars['INPUT_BUFFER_SIZE']}x{env_vars['WEIGHT_BUFFER_SIZE']}x{env_vars['ACCUM_BUFFER_SIZE']}_{env_vars['DOUBLE_BUFFERED_ACCUM_BUFFER']}"
+    config_path = (
+        f"{env_vars['DATATYPE']}/"
+        f"{env_vars['IC_DIMENSION']}x{env_vars['OC_DIMENSION']}_"
+        f"{env_vars['INPUT_BUFFER_SIZE']}x{env_vars['WEIGHT_BUFFER_SIZE']}x{env_vars['ACCUM_BUFFER_SIZE']}_"
+        f"{env_vars['DOUBLE_BUFFERED_ACCUM_BUFFER']}_"
+        f"{env_vars['SUPPORT_MVM']}"
+    )
 
     # Build the simulation binary
     print("Building the simulation binary...")

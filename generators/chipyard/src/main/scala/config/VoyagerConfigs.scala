@@ -17,6 +17,7 @@ class Posit8x16x16
       new voyager.WithVoyager("P8_1", 16, 16, 1024, 1024, 1024, 5.0, "generic") ++
         new chipyard.harness.WithVoyagerVerification ++
         new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new chipyard.config.WithSystemBusWidth(128) ++
         new VoyagerRocketConfig
     )
 
@@ -25,6 +26,7 @@ class INT8x16x16
       new voyager.WithVoyager("INT8", 16, 16, 1024, 1024, 1024, 5.0, "generic") ++
         new chipyard.harness.WithVoyagerVerification ++
         new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new chipyard.config.WithSystemBusWidth(128) ++
         new VoyagerRocketConfig
     )
 
@@ -33,14 +35,17 @@ class MXINT8x16x16
       new voyager.WithVoyager("MXINT8", 16, 16, 1024, 1024, 1024, 5.0, "generic", "E8M0") ++
         new chipyard.harness.WithVoyagerVerification ++
         new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new chipyard.config.WithSystemBusWidth(128) ++
         new VoyagerRocketConfig
     )
 
 class MXNF4x64x64
     extends Config(
-      new voyager.WithVoyager("MXNF4", 64, 64, 256, 576, 256, 5.0, "generic", "E5M3") ++
+      new voyager.WithVoyager("MXNF4", 64, 64, 1024, 1024, 1024, 1.0, "tsmc7", "E5M3", true, true) ++
         new chipyard.harness.WithVoyagerVerification ++
         new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new chipyard.config.WithSystemBusWidth(256) ++
+        new voyager.WithMaxBurstSize(128) ++
         new VoyagerRocketConfig
     )
 
@@ -49,6 +54,7 @@ class E4M3x32x64
       new voyager.WithVoyager("E4M3", 32, 64, 1024, 1024, 1024, 5.0, "generic") ++
         new chipyard.harness.WithVoyagerVerification ++
         new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new chipyard.config.WithSystemBusWidth(256) ++
         new VoyagerRocketConfig
     )
 
@@ -57,6 +63,7 @@ class E4M3x32x32
       new voyager.WithVoyager("E4M3", 32, 32, 1024, 1024, 1024, 5.0, "generic") ++
         new chipyard.harness.WithVoyagerVerification ++
         new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new chipyard.config.WithSystemBusWidth(256) ++
         new VoyagerRocketConfig
     )
 
@@ -65,6 +72,7 @@ class E4M3x16x32
       new voyager.WithVoyager("E4M3", 16, 32, 1024, 1024, 1024, 5.0, "generic") ++
         new chipyard.harness.WithVoyagerVerification ++
         new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new chipyard.config.WithSystemBusWidth(128) ++
         new VoyagerRocketConfig
     )
 
@@ -73,6 +81,7 @@ class E4M3x8x16
       new voyager.WithVoyager("E4M3", 8, 16, 1024, 1024, 1024, 5.0, "generic") ++
         new chipyard.harness.WithVoyagerVerification ++
         new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new chipyard.config.WithSystemBusWidth(64) ++
         new VoyagerRocketConfig
     )
 
@@ -81,6 +90,7 @@ class E4M3x8x8
       new voyager.WithVoyager("E4M3", 8, 8, 1024, 1024, 1024, 5.0, "generic") ++
         new chipyard.harness.WithVoyagerVerification ++
         new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new chipyard.config.WithSystemBusWidth(64) ++
         new VoyagerRocketConfig
     )
 
@@ -89,6 +99,7 @@ class E4M3x4x8
       new voyager.WithVoyager("E4M3", 4, 8, 1024, 1024, 1024, 5.0, "generic") ++
         new chipyard.harness.WithVoyagerVerification ++
         new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new chipyard.config.WithSystemBusWidth(32) ++
         new VoyagerRocketConfig
     )
 
@@ -101,6 +112,7 @@ class VoyagerDebugConfig
 
 class VoyagerRocketConfig
     extends Config(
+      new voyager.WithDefaultMaxBurstSize ++
       new freechips.rocketchip.rocket.WithNHugeCores(1) ++ // single rocket-core
         new AbstractConfig
     )
@@ -241,11 +253,11 @@ class AbstractConfig
         new chipyard.config.WithBootROM ++
         /** use default bootrom */
         new testchipip.soc.WithSbusScratchpad(
-          base = 0x40000000L,
-          /** add 2 MiB on-chip scratchpad */
-          size = 2 * 1024 * 1024,
-          banks = 8,
-          subBanks = 4,
+          base     = 0x40000000L,
+          /** add 4 MiB on-chip scratchpad */
+          size     = 1 * 1024 * 1024,
+          banks    = 8,
+          subBanks = 2,
         ) ++
 
         // Coherency settings
