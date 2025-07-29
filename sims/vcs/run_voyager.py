@@ -4,7 +4,6 @@ import argparse
 import datetime
 import multiprocessing as mp
 import pandas as pd
-import shlex
 import subprocess
 import re
 from deepdiff import DeepDiff
@@ -91,96 +90,71 @@ def run_rtl_simulation(model, layer, output_folder, env_vars, config_path, debug
     env_vars["NETWORK"] = model
     env_vars["TESTS"] = layer
 
-    cmd = [
-        (
-            f"./simv-chipyard.harness-{env_vars['CONFIG']}"
-            if not debug
-            else f"./simv-chipyard.harness-{env_vars['CONFIG']}-debug"
-        ),
-        "+permissive",
-        "+dramsim",
-        "+dramsim_ini_dir=../../generators/testchipip/src/main/resources/dramsim2_ini",
-        "+max-cycles=10000000000",
-        "+ntb_random_seed_automatic",
-        "+verbose",
-        f"+fsdbfile={output_folder}/{model}_{layer}.fsdb" if debug else "",
-        "+permissive-off",
-        f"../../tests/voyager/networks/{model}/{config_path}/{layer}.riscv",
-    ]
-
     with open(f"{output_folder}/{model}_{layer}.log", "w") as log_file, open(
         f"{output_folder}/{model}_{layer}.err", "w"
     ) as err_file:
-        log_file.write(" ".join(shlex.quote(arg) for arg in cmd) + "\n")
         subprocess.run(
-            cmd,
+            [
+                (
+                    f"./simv-chipyard.harness-{env_vars['CONFIG']}"
+                    if not debug
+                    else f"./simv-chipyard.harness-{env_vars['CONFIG']}-debug"
+                ),
+                "+permissive",
+                "+dramsim",
+                "+dramsim_ini_dir=../../generators/testchipip/src/main/resources/dramsim2_ini",
+                "+max-cycles=10000000",
+                "+ntb_random_seed_automatic",
+                "+verbose",
+                f"+fsdbfile={output_folder}/{model}_{layer}.fsdb" if debug else "",
+                "+permissive-off",
+                f"../../tests/voyager/networks/{model}/{config_path}/{layer}.riscv",
+            ],
             env=env_vars,
             stdout=log_file,
             stderr=err_file,
             timeout=2 * 60 * 60,  # 2 hours
         )
 
-    # search if the test passed
-    p = subprocess.Popen(
-        ["grep", "Error count: 0", f"{output_folder}/{model}_{layer}.log"],
-        stdout=subprocess.PIPE,
-    )
-    p.communicate()
-    success = p.returncode == 0
+    log_file = f"{output_folder}/{model}_{layer}.log"
 
-    if success:
-        # capture ideal runtime number in the log file
-        # can either be "Matrix unit ideal runtime: " or "Vector unit ideal runtime: "
-        p = subprocess.Popen(
-            [
-                "grep",
-                "-oP",
-                "(?<=matrix unit ideal runtime: ).\d+",
-                f"{output_folder}/{model}_{layer}.log",
-            ],
-            stdout=subprocess.PIPE,
-        )
+    success = False
+    runtime = 0
+    ideal = 0
+    runtime_type = ""
 
-        match = p.communicate()[0]
+    if os.path.exists(log_file):
+        with open(log_file, "r") as file:
+            content = file.read()
 
-        if match:
-            runtime_type = "matrix"
-        else:
-            p = subprocess.Popen(
-                [
-                    "grep",
-                    "-oP",
-                    "(?<=vector unit ideal runtime: ).\d+",
-                    f"{output_folder}/{model}_{layer}.log",
-                ],
-                stdout=subprocess.PIPE,
+        # 1. Check if test passed
+        success = bool(re.search(r"Error\s+count:\s+0", content))
+        
+        if success:
+            # 2. Capture runtime type (Matrix or Vector) and ideal runtime
+            match = re.search(
+                r"(matrix|vector)\s+unit\s+ideal\s+runtime:\s+(\d+)\s*ns",
+                content,
+                flags=re.IGNORECASE,
             )
-            match, error = p.communicate()
-            assert not error
+            if match:
+                runtime_type = match.group(1).lower()  # "matrix" or "vector"
+                ideal = int(match.group(2))
 
-            runtime_type = "vector"
+            # 3. Capture runtime based on type
+            if runtime_type == "matrix":
+                runtime_match = re.search(
+                    r"Accelerator\s+Runtime:\s+(\d+)\s*cycles", content, flags=re.IGNORECASE
+                )
+            elif runtime_type == "vector":
+                runtime_match = re.search(
+                    r"Vector\s+Unit\s+Runtime:\s+(\d+)\s*cycles", content, flags=re.IGNORECASE
+                )
+            else:
+                runtime_match = None
 
-        ideal = int(match.decode("utf-8").strip())
-
-        # capture runtime number in the log file
-        if runtime_type == "matrix":
-            search_text = "Accelerator Runtime: "
-        else:
-            search_text = "Vector Unit Runtime: "
-        p = subprocess.Popen(
-            [
-                "grep",
-                "-oP",
-                f"(?<={search_text}).\d+",
-                f"{output_folder}/{model}_{layer}.log",
-            ],
-            stdout=subprocess.PIPE,
-        )
-        runtime = int(p.communicate()[0].decode("utf-8").strip())
-    else:
-        runtime = 0
-        ideal = 0
-        runtime_type = ""
+            if runtime_match:
+                runtime = int(runtime_match.group(1))
 
     return (model, layer, success, runtime, ideal, runtime_type, 1)  # Default count of 1
 
@@ -264,6 +238,7 @@ def add_layers(network, layers, layer_counts, uniquify, env_vars):
             # remove the name, memory, and node fields from the op
             delete_nested_keys(op, "name")
             delete_nested_keys(op, "memory")
+            delete_nested_keys(op, "scratchpad")
             delete_nested_keys(op, "node")
 
             is_unique_layer = True

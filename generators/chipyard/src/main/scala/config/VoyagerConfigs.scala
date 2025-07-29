@@ -254,10 +254,9 @@ class AbstractConfig
         /** use default bootrom */
         new testchipip.soc.WithSbusScratchpad(
           base     = 0x40000000L,
-          /** add 4 MiB on-chip scratchpad */
-          size     = 1 * 1024 * 1024,
-          banks    = 8,
-          subBanks = 2,
+          size     = sys.env.get("CACHE_SIZE").map(v => BigInt(v)).getOrElse(BigInt(4 * 1024 * 1024)),
+          banks    = sys.env.get("NUM_BANKS").map(_.toInt).getOrElse(8),
+          subBanks = sys.env.get("NUM_SUB_BANKS").map(_.toInt).getOrElse(2)
         ) ++
 
         // Coherency settings
