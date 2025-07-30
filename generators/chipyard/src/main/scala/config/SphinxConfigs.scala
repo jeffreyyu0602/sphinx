@@ -4,6 +4,7 @@ import chisel3._
 import org.chipsalliance.cde.config._
 import freechips.rocketchip.devices.tilelink.{BootROMLocated, BootROMParams}
 import freechips.rocketchip.subsystem.{InSubsystem}
+import gemmini.CounterEvent.n
 
 class WithMyBootROM extends Config((site, here, up) => {
   case BootROMLocated(InSubsystem) =>
@@ -21,18 +22,21 @@ class SphinxConfig
       new chipyard.sphinx.WithTSMC7IOCells ++
       new chipyard.sphinx.WithTSMC7ChipTop ++
       new chipyard.sphinx.WithGPIODriver ++
-      new chipyard.harness.WithSphinxSelected ++
-      new chipyard.harness.WithD2TiedOff ++
-      new WithDigitalTopName("SphinxTop") ++
-      new hyperram.WithHyperRAM ++
-      new chipyard.harness.WithSimHyperRAM ++
-      new chipyard.iobinders.WithHyperRAMIOCells ++
-      new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+      // new chipyard.harness.WithSphinxSelected ++
+      // new chipyard.harness.WithD2TiedOff ++
+      // new WithDigitalTopName("SphinxTop") ++
+      // new hyperram.WithHyperRAM ++
+      // new chipyard.harness.WithSimHyperRAM ++
+      // new chipyard.iobinders.WithHyperRAMIOCells ++
+      // new freechips.rocketchip.subsystem.WithoutTLMonitors ++
       new testchipip.soc.WithSbusScratchpad(
         base = 0x40000000L,
-        size = 2 * 1024 * 1024,
-        subBanks = 32,
+        size = 768 * 1024,
+        banks = 6,
+        subBanks = 2,
       ) ++
+      new chipyard.config.WithSystemBusWidth(256) ++
+      new chipyard.clocking.WithSingleClockBroadcastClockGenerator ++
       new testchipip.serdes.WithNoSerialTL ++
       new testchipip.boot.WithNoCustomBootPin ++
       new testchipip.boot.WithNoBootAddrReg ++

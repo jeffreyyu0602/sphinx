@@ -12,24 +12,23 @@ import scala.collection.immutable.{ListMap}
 import testchipip.soc.{BankedScratchpadKey}
 
 
-class AtomicScratchpadBank(subBanks: Int, address: AddressSet, beatBytes: Int, devOverride: MemoryDevice, buffer: BufferParams)(implicit p: Parameters) extends ClockSinkDomain(ClockSinkParameters())(p) {
-  val mask = (subBanks - 1) * p(CacheBlockBytes)
+class ScratchpadBank(subBanks: Int, address: AddressSet, beatBytes: Int, devOverride: MemoryDevice, buffer: BufferParams)(implicit p: Parameters) extends ClockSinkDomain(ClockSinkParameters())(p) {
   val xbar = TLXbar()
-  val bankSize = (address.mask + 1) / subBanks
+  val subBankSize = (address.mask + 1) / subBanks
   (0 until subBanks).map { sb =>
     val ram = LazyModule(new TLRAM(
-      address = AddressSet(address.base + sb * bankSize, bankSize - 1),
+      address = AddressSet(address.base + sb * subBankSize, subBankSize - 1),
       atomics = true,
       beatBytes = beatBytes,
       devOverride = Some(devOverride)) {
       override lazy val desiredName = s"TLRAM_ScratchpadBank"
     })
-    ram.node :=  TLFragmenter(beatBytes, p(CacheBlockBytes), nameSuffix = Some("ScratchpadBank")) := TLBuffer(buffer) := xbar
+    ram.node := TLFragmenter(beatBytes, 128, nameSuffix = Some("ScratchpadBank")) := TLBuffer(buffer) := xbar
   }
   override lazy val desiredName = "ScratchpadBank"
 }
 
-trait CanHaveAtomicBankedScratchpad { this: BaseSubsystem =>
+trait CanHaveBankedScratchpad { this: BaseSubsystem =>
   p(BankedScratchpadKey).zipWithIndex.foreach { case (params, si) =>
     val bus = locateTLBusWrapper(params.busWhere)
 
@@ -37,8 +36,8 @@ trait CanHaveAtomicBankedScratchpad { this: BaseSubsystem =>
 
     val name = params.name
     val banks = params.banks
-    val bankStripe = p(CacheBlockBytes)*params.subBanks
-    val mask = (params.banks-1)*bankStripe
+    val size = params.size
+    val bankSize = size / banks
     val device = new MemoryDevice {
       override def describe(resources: ResourceBindings): Description = {
         Description(describeName("memory", resources), ListMap(
@@ -50,9 +49,9 @@ trait CanHaveAtomicBankedScratchpad { this: BaseSubsystem =>
     }
 
     def genBanks()(implicit p: Parameters) = (0 until banks).map { b =>
-      val bank = LazyModule(new AtomicScratchpadBank(
+      val bank = LazyModule(new ScratchpadBank(
         params.subBanks,
-        AddressSet(params.base + bankStripe * b, params.size - 1 - mask),
+        AddressSet(params.base + bankSize * b, bankSize - 1),
         bus.beatBytes,
         device,
         params.buffer))

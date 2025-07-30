@@ -1,6 +1,7 @@
 #include <svdpi.h>
 #include <vpi_user.h>
 
+#include <iostream>
 #include <map>
 #include <string>
 
@@ -8,46 +9,44 @@
 
 class testchip_vpi_tsi_t : public testchip_tsi_t {
  public:
-  static const int NUM_BANKS = 1;
-  static const int NUM_SUBBANKS = 32;
-  static const int NUM_BYTES = 8;
+  static const int NUM_BANKS = 6;
+  static const int NUM_SUBBANKS = 2;
+  static const int NUM_BYTES = 32;
+  static const int MACRO_WIDTH = 8;
 
-  static const uint64_t MEM_SIZE = 2 * 1024 * 1024;
+  static const uint64_t CACHE_SIZE = 0.75 * 1024 * 1024;
   static const uint64_t BASE_ADDR = 0x40000000;
-  static const uint64_t END_ADDR = BASE_ADDR + MEM_SIZE - 1;
-  static const uint64_t SUBBANK_SIZE = MEM_SIZE / NUM_SUBBANKS;
+  static const uint64_t END_ADDR = BASE_ADDR + CACHE_SIZE - 1;
 
-  vpiHandle banks[NUM_SUBBANKS] = {nullptr};
-
-  testchip_vpi_tsi_t(int argc, char** argv, bool has_loadmem);
+  testchip_vpi_tsi_t(int argc, char** argv, bool has_loadmem)
+      : testchip_tsi_t(argc, argv, has_loadmem) {};
   ~testchip_vpi_tsi_t() {};
 
+  std::string decode_address(const long long address, int& word_index);
   void write_chunk(addr_t taddr, size_t nbytes, const void* src) override;
   void read_chunk(addr_t taddr, size_t nbytes, void* dst) override;
 };
 
-testchip_vpi_tsi_t::testchip_vpi_tsi_t(int argc, char** argv, bool has_loadmem)
-    : testchip_tsi_t(argc, argv, has_loadmem) {
-  char pathbuf[512];
-  for (int sub = 0; sub < NUM_SUBBANKS; ++sub) {
-    if (sub == 0) {
-      snprintf(pathbuf, sizeof(pathbuf),
-               "TestDriver.testHarness.chiptop0.system.bank.ram.mem.mem_ext."
-               "mem_0_0.u_ram_core.memory");
-    } else {
-      snprintf(pathbuf, sizeof(pathbuf),
-               "TestDriver.testHarness.chiptop0.system.bank.ram_%d.mem.mem_ext."
-               "mem_0_0.u_ram_core.memory",
-               sub);
-    }
+std::string testchip_vpi_tsi_t::decode_address(const long long address,
+                                               int& word_index) {
+  uint32_t bank_size = CACHE_SIZE / NUM_BANKS;
+  uint32_t subbank_size = bank_size / NUM_SUBBANKS;
 
-    banks[sub] = vpi_handle_by_name((PLI_BYTE8*)pathbuf, NULL);
-    if (!banks[sub]) {
-      vpi_printf((PLI_BYTE8*)"ERROR: Could not get handle to %s\n", pathbuf);
-      throw std::runtime_error("Failed to get handle to memory");
-    }
-  }
-  vpi_printf((PLI_BYTE8*)"Successfully got handles to all banks\n");
+  int bank_index = address / bank_size;
+  int subbank_index = (address % bank_size) / subbank_size;
+  word_index = (address % subbank_size) / NUM_BYTES;
+  int macro_index = (address % NUM_BYTES) / MACRO_WIDTH;
+
+  std::string bank_prefix =
+      bank_index ? "bank_" + std::to_string(bank_index) : "bank";
+  std::string subbank_prefix =
+      subbank_index ? "ram_" + std::to_string(subbank_index) : "ram";
+  std::string macro_prefix = "mem_0_" + std::to_string(macro_index);
+
+  std::string path_to_ram = "TestDriver.testHarness.chiptop0.system." +
+                            bank_prefix + "." + subbank_prefix +
+                            ".mem.mem_ext." + macro_prefix + ".u_ram_core.memory";
+  return path_to_ram;
 }
 
 void testchip_vpi_tsi_t::write_chunk(addr_t taddr, size_t nbytes,
@@ -86,16 +85,21 @@ void testchip_vpi_tsi_t::write_chunk(addr_t taddr, size_t nbytes,
   for (size_t i = 0; i < nbytes; i++) {
     uint8_t byte = src_data[i];
 
-    addr_t addr = taddr + i;
-    int bank_idx = addr / SUBBANK_SIZE;
-    int index = (addr % SUBBANK_SIZE) / NUM_BYTES;
-    int byte_offset = addr % NUM_BYTES;
+    int word_index;
+    std::string path_to_ram = decode_address(taddr + i, word_index);
+    std::cerr << "Writing byte to RAM at: " << path_to_ram << std::endl;
 
-    vpiHandle elem = vpi_handle_by_index(banks[bank_idx], index);
+    vpiHandle ram_handle =
+        vpi_handle_by_name(strdup(path_to_ram.c_str()), NULL);
+    if (ram_handle == NULL) {
+      std::cerr << "Could not find memory handle: " << path_to_ram << std::endl;
+      std::abort();
+    }
+
+    vpiHandle elem = vpi_handle_by_index(ram_handle, word_index);
     if (!elem) {
-      vpi_printf((PLI_BYTE8*)"ERROR: Could not get handle to "
-      "sub-bank %d index %d at addr %08x\n", bank_idx, index, addr);
-      throw std::runtime_error("Failed to get handle to scratchpad element");
+      std::cerr << "Could not find word handle: " << word_index << std::endl;
+      std::abort();
     }
 
     s_vpi_value value;
@@ -107,6 +111,7 @@ void testchip_vpi_tsi_t::write_chunk(addr_t taddr, size_t nbytes,
         static_cast<uint64_t>(value.value.vector[0].aval);
 
     // Modify only the targeted byte
+    int byte_offset = (taddr + i) % NUM_BYTES;
     reg_val &= ~(0xFFULL << (byte_offset * 8));
     reg_val |= (static_cast<uint64_t>(byte) << (byte_offset * 8));
 
@@ -114,9 +119,6 @@ void testchip_vpi_tsi_t::write_chunk(addr_t taddr, size_t nbytes,
     value.value.vector[1].aval = static_cast<uint32_t>((reg_val >> 32));
 
     vpi_put_value(elem, &value, NULL, vpiNoDelay);
-
-    // vpi_printf((PLI_BYTE8*)"Wrote 0x%02x to mem[%d][%d] byte offset %d\n", byte,
-    //            bank_idx, index, byte_offset);
   }
 }
 
@@ -131,16 +133,20 @@ void testchip_vpi_tsi_t::read_chunk(addr_t taddr, size_t nbytes, void* dst) {
   taddr -= BASE_ADDR;  // Adjust address to match the memory map
 
   for (int i = 0; i < nbytes; ++i) {
-    addr_t addr = taddr + i;
-    int bank_idx = addr / SUBBANK_SIZE;
-    int index = (addr % SUBBANK_SIZE) / NUM_BYTES;
-    int byte_offset = addr % NUM_BYTES;
+    int word_index;
+    std::string path_to_ram = decode_address(taddr + i, word_index);
 
-    vpiHandle elem = vpi_handle_by_index(banks[bank_idx], index);
+    vpiHandle ram_handle =
+        vpi_handle_by_name(strdup(path_to_ram.c_str()), NULL);
+    if (ram_handle == NULL) {
+      std::cerr << "Could not find memory handle: " << path_to_ram << std::endl;
+      std::abort();
+    }
+
+    vpiHandle elem = vpi_handle_by_index(ram_handle, word_index);
     if (!elem) {
-      vpi_printf((PLI_BYTE8*)"ERROR: Could not get handle to "
-      "sub-bank %d index %d at addr %08x\n", bank_idx, index, addr);
-      throw std::runtime_error("Failed to get handle to bank");
+      std::cerr << "Could not find word handle: " << word_index << std::endl;
+      std::abort();
     }
 
     s_vpi_value value;
@@ -151,12 +157,8 @@ void testchip_vpi_tsi_t::read_chunk(addr_t taddr, size_t nbytes, void* dst) {
         (static_cast<uint64_t>(value.value.vector[1].aval) << 32) |
         static_cast<uint64_t>(value.value.vector[0].aval);
 
-    uint8_t byte_val = (reg_val >> (byte_offset * 8)) & 0xFF;
-
-    // vpi_printf((PLI_BYTE8*)"Read mem[%d][%d] = %08x\n", bank_idx, index,
-    //            byte_val);
-
-    result[i] = byte_val;
+    int byte_offset = (taddr + i) % NUM_BYTES;
+    result[i] = (reg_val >> (byte_offset * 8)) & 0xFF;
   }
 }
 

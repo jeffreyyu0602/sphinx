@@ -223,7 +223,11 @@ object IOCell {
     ): Seq[IOCell] = {
       DataMirror.directionOf(coreSignal) match {
         case ActualDirection.Input => {
-          val iocell = typeParams.input()
+          // val iocell = typeParams.input()
+          val iocell = typeParams match {
+            case tp: chipyard.sphinx.TSMC7IOCellParams => tp.input(name)
+            case _ => typeParams.input()
+          }
           name.foreach(n => {
             iocell.suggestName(n)
           })
@@ -233,7 +237,11 @@ object IOCell {
           Seq(iocell)
         }
         case ActualDirection.Output => {
-          val iocell = typeParams.output()
+          // val iocell = typeParams.output()
+          val iocell = typeParams match {
+            case tp: chipyard.sphinx.TSMC7IOCellParams => tp.output(name)
+            case _ => typeParams.output()
+          }
           name.foreach(n => {
             iocell.suggestName(n)
           })
@@ -280,7 +288,11 @@ object IOCell {
           DataMirror.directionOf(coreSignal) match {
             case ActualDirection.Input => {
               val iocells = padSignal.asBools.zipWithIndex.map { case (sig, i) =>
-                val iocell = typeParams.input()
+                // val iocell = typeParams.input()
+                val iocell = typeParams match {
+                  case tp: chipyard.sphinx.TSMC7IOCellParams => tp.input(name)
+                  case _ => typeParams.input()
+                }
                 // Note that we are relying on chisel deterministically naming this in the index order (which it does)
                 // This has the side-effect of naming index 0 with no _0 suffix, which is how chisel names other signals
                 // An alternative solution would be to suggestName(n + "_" + i)
@@ -297,7 +309,11 @@ object IOCell {
             }
             case ActualDirection.Output => {
               val iocells = coreSignal.asBools.zipWithIndex.map { case (sig, i) =>
-                val iocell = typeParams.output()
+                // val iocell = typeParams.output()
+                val iocell = typeParams match {
+                  case tp: chipyard.sphinx.TSMC7IOCellParams => tp.output(name)
+                  case _ => typeParams.output()
+                }
                 // Note that we are relying on chisel deterministically naming this in the index order (which it does)
                 // This has the side-effect of naming index 0 with no _0 suffix, which is how chisel names other signals
                 // An alternative solution would be to suggestName(n + "_" + i)

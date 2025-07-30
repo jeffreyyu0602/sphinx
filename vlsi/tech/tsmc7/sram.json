@@ -38,18 +38,6 @@
         "value": 0
       },
       {
-        "name": "PUDELAY_SD",
-        "width": 1,
-        "type": "constant",
-        "value": 0
-      },
-      {
-        "name": "PUDELAY_DSLP",
-        "width": 1,
-        "type": "constant",
-        "value": 0
-      },
-      {
         "name": "FADIO",
         "width": 6,
         "type": "constant",
@@ -86,18 +74,6 @@
         "value": 0
       },
       {
-        "name": "SOC",
-        "width": 1,
-        "type": "constant",
-        "value": 0
-      },
-      {
-        "name": "SOD",
-        "width": 2,
-        "type": "constant",
-        "value": 0
-      },
-      {
         "name": "DSLPLV",
         "width": 1,
         "type": "constant",
@@ -107,13 +83,13 @@
         "name": "RTSEL",
         "width": 2,
         "type": "constant",
-        "value": 0
+        "value": 2
       },
       {
         "name": "WTSEL",
         "width": 2,
         "type": "constant",
-        "value": 0
+        "value": 1
       }
     ]
   },
@@ -156,18 +132,6 @@
         "value": 0
       },
       {
-        "name": "PUDELAY_SD",
-        "width": 1,
-        "type": "constant",
-        "value": 0
-      },
-      {
-        "name": "PUDELAY_DSLP",
-        "width": 1,
-        "type": "constant",
-        "value": 0
-      },
-      {
         "name": "FADIO",
         "width": 7,
         "type": "constant",
@@ -204,18 +168,6 @@
         "value": 0
       },
       {
-        "name": "SOC",
-        "width": 1,
-        "type": "constant",
-        "value": 0
-      },
-      {
-        "name": "SOD",
-        "width": 2,
-        "type": "constant",
-        "value": 0
-      },
-      {
         "name": "DSLPLV",
         "width": 1,
         "type": "constant",
@@ -225,13 +177,13 @@
         "name": "RTSEL",
         "width": 2,
         "type": "constant",
-        "value": 0
+        "value": 2
       },
       {
         "name": "WTSEL",
         "width": 2,
         "type": "constant",
-        "value": 0
+        "value": 1
       }
     ]
   },
@@ -274,18 +226,6 @@
         "value": 0
       },
       {
-        "name": "PUDELAY_SD",
-        "width": 1,
-        "type": "constant",
-        "value": 0
-      },
-      {
-        "name": "PUDELAY_DSLP",
-        "width": 1,
-        "type": "constant",
-        "value": 0
-      },
-      {
         "name": "FADIO",
         "width": 7,
         "type": "constant",
@@ -322,18 +262,6 @@
         "value": 0
       },
       {
-        "name": "SOC",
-        "width": 1,
-        "type": "constant",
-        "value": 0
-      },
-      {
-        "name": "SOD",
-        "width": 2,
-        "type": "constant",
-        "value": 0
-      },
-      {
         "name": "DSLPLV",
         "width": 1,
         "type": "constant",
@@ -343,19 +271,19 @@
         "name": "RTSEL",
         "width": 2,
         "type": "constant",
-        "value": 0
+        "value": 2
       },
       {
         "name": "WTSEL",
         "width": 2,
         "type": "constant",
-        "value": 0
+        "value": 1
       }
     ]
   },
   {
     "type": "sram",
-    "name": "TS1N7MBSVTB8192X64M8QWBZHODXCPL",
+    "name": "TS1N7MBSVTA8192X64M8QWZHOCP",
     "family": "1rw",
     "depth": "8192",
     "width": 64,
@@ -380,62 +308,14 @@
     ],
     "extra ports": [
       {
-        "name": "SD",
-        "width": 1,
-        "type": "constant",
-        "value": 0
-      },
-      {
         "name": "DSLP",
         "width": 1,
         "type": "constant",
         "value": 0
       },
       {
-        "name": "PUDELAY_SD",
+        "name": "SD",
         "width": 1,
-        "type": "constant",
-        "value": 0
-      },
-      {
-        "name": "PUDELAY_DSLP",
-        "width": 1,
-        "type": "constant",
-        "value": 0
-      },
-      {
-        "name": "BIST",
-        "width": 1,
-        "type": "constant",
-        "value": 0
-      },
-      {
-        "name": "CEBM",
-        "width": 1,
-        "type": "constant",
-        "value": 0
-      },
-      {
-        "name": "WEBM",
-        "width": 1,
-        "type": "constant",
-        "value": 0
-      },
-      {
-        "name": "AM",
-        "width": 13,
-        "type": "constant",
-        "value": 0
-      },
-      {
-        "name": "BWEBM",
-        "width": 64,
-        "type": "constant",
-        "value": 0
-      },
-      {
-        "name": "DM",
-        "width": 64,
         "type": "constant",
         "value": 0
       },
@@ -476,18 +356,6 @@
         "value": 0
       },
       {
-        "name": "SOC",
-        "width": 1,
-        "type": "constant",
-        "value": 0
-      },
-      {
-        "name": "SOD",
-        "width": 2,
-        "type": "constant",
-        "value": 0
-      },
-      {
         "name": "DSLPLV",
         "width": 1,
         "type": "constant",
@@ -497,25 +365,13 @@
         "name": "RTSEL",
         "width": 2,
         "type": "constant",
-        "value": 0
+        "value": 2
       },
       {
         "name": "WTSEL",
         "width": 2,
         "type": "constant",
-        "value": 0
-      },
-      {
-        "name": "WASEN",
-        "width": 1,
-        "type": "constant",
-        "value": 0
-      },
-      {
-        "name": "WASSEL",
-        "width": 2,
-        "type": "constant",
-        "value": 0
+        "value": 1
       }
     ]
   }

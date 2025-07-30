@@ -32,13 +32,22 @@ class TSMC7ChipTop(implicit p: Parameters) extends ChipTop {
           case c: TSMC7AnalogIOCell => {
             // do nothing
           }
-          case c: TSMC7DigitalGPIOCell => {
+          case c: TSMC7DigitalGPIOCellH => {
             c.io.ds := ds
           }
-          case c: TSMC7DigitalInIOCell => {
+          case c: TSMC7DigitalInIOCellH => {
             c.io.ds := ds
           }
-          case c: TSMC7DigitalOutIOCell => {
+          case c: TSMC7DigitalOutIOCellH => {
+            c.io.ds := ds
+          }
+          case c: TSMC7DigitalGPIOCellV => {
+            c.io.ds := ds
+          }
+          case c: TSMC7DigitalInIOCellV => {
+            c.io.ds := ds
+          }
+          case c: TSMC7DigitalOutIOCellV => {
             c.io.ds := ds
           }
           case c => {

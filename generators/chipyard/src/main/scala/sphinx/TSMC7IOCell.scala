@@ -30,19 +30,66 @@ class TSMC7DigitalOutIOCellBundle extends DigitalOutIOCellBundle {
 class TSMC7AnalogIOCell extends TSMC7IOCell with AnalogIOCell {
   val io = IO(new AnalogIOCellBundle)
 }
-class TSMC7DigitalGPIOCell extends TSMC7IOCell with DigitalGPIOCell {
+class TSMC7DigitalGPIOCellH extends TSMC7IOCell with DigitalGPIOCell {
   val io = IO(new TSMC7DigitalGPIOCellBundle)
 }
-class TSMC7DigitalInIOCell extends TSMC7IOCell with DigitalInIOCell {
+class TSMC7DigitalInIOCellH extends TSMC7IOCell with DigitalInIOCell {
   val io = IO(new TSMC7DigitalInIOCellBundle)
 }
-class TSMC7DigitalOutIOCell extends TSMC7IOCell with DigitalOutIOCell {
+class TSMC7DigitalOutIOCellH extends TSMC7IOCell with DigitalOutIOCell {
   val io = IO(new TSMC7DigitalOutIOCellBundle)
 }
 
+class TSMC7DigitalGPIOCellV extends TSMC7IOCell with DigitalGPIOCell {
+  val io = IO(new TSMC7DigitalGPIOCellBundle)
+}
+class TSMC7DigitalInIOCellV extends TSMC7IOCell with DigitalInIOCell {
+  val io = IO(new TSMC7DigitalInIOCellBundle)
+}
+class TSMC7DigitalOutIOCellV extends TSMC7IOCell with DigitalOutIOCell {
+  val io = IO(new TSMC7DigitalOutIOCellBundle)
+}
+
+
 case class TSMC7IOCellParams() extends IOCellTypeParams {
+  val ioDirectionMap: Map[String, String] = Map(
+    "iocell_jtag_TDO" -> "Vertical",
+    "iocell_jtag_TDI" -> "Vertical",
+    "iocell_jtag_TMS" -> "Vertical",
+    "iocell_jtag_TCK" -> "Vertical",
+    "iocell_clock" -> "Vertical",
+    "iocell_reset" -> "Vertical",
+    "iocell_clock_tap" -> "Vertical",
+  )
+
   def analog() = Module(new TSMC7AnalogIOCell)
-  def gpio() = Module(new TSMC7DigitalGPIOCell)
-  def input() = Module(new TSMC7DigitalInIOCell)
-  def output() = Module(new TSMC7DigitalOutIOCell)
+  def gpio() = Module(new TSMC7DigitalGPIOCellH)
+  def input() = Module(new TSMC7DigitalInIOCellH)
+  def output() = Module(new TSMC7DigitalOutIOCellH)
+
+  def gpio(nameOpt: Option[String] = None) = {
+    val dir = nameOpt.flatMap(ioDirectionMap.get).getOrElse("Horizontal")
+    dir match {
+      case "Vertical" => Module(new TSMC7DigitalGPIOCellV)
+      case _ => Module(new TSMC7DigitalGPIOCellH)
+    }
+  }
+
+  def input(nameOpt: Option[String] = None) = {
+    val dir = nameOpt.flatMap(ioDirectionMap.get).getOrElse("Horizontal")
+    println(s"[DEBUG]: TSMC7IOCellParams.input called with name = ${nameOpt.getOrElse("None")}, resolved direction = $dir")
+    dir match {
+      case "Vertical" => Module(new TSMC7DigitalInIOCellV)
+      case _ => Module(new TSMC7DigitalInIOCellH)
+    }
+  }
+
+  def output(nameOpt: Option[String] = None) = {
+    val dir = nameOpt.flatMap(ioDirectionMap.get).getOrElse("Horizontal")
+    println(s"[DEBUG]: TSMC7IOCellParams.output called with name = ${nameOpt.getOrElse("None")}, resolved direction = $dir")
+    dir match {
+      case "Vertical" => Module(new TSMC7DigitalOutIOCellV)
+      case _ => Module(new TSMC7DigitalOutIOCellH)
+    }
+  }
 }

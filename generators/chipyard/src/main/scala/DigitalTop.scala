@@ -45,7 +45,7 @@ class DigitalTop(
     with rerocc.CanHaveReRoCCTiles                             // Support tiles that instantiate rerocc-attached accelerators
     with hyperram.CanHavePeripheryHyperRAM                     // Enables optionally adding a HyperRAM controller
     with sphinx.CanHavePeripheryGPIODriver
-    with sphinx.CanHaveAtomicBankedScratchpad
+    with sphinx.CanHaveBankedScratchpad
     with voyager.CanHavePeripheryVoyager {
   override lazy val desiredName = p(DigitalTopName)
   override lazy val module = new DigitalTopModule(this)
