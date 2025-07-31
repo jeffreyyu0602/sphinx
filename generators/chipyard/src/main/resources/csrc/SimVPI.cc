@@ -22,19 +22,21 @@ class testchip_vpi_tsi_t : public testchip_tsi_t {
       : testchip_tsi_t(argc, argv, has_loadmem) {};
   ~testchip_vpi_tsi_t() {};
 
-  std::string decode_address(const long long address, int& word_index);
-  void write_chunk(addr_t taddr, size_t nbytes, const void* src) override;
+  vpiHandle get_handle(const uint64_t address);
+  uint8_t read_byte(uint64_t addr);
+  void write_byte(uint64_t addr, uint8_t byte);
+
   void read_chunk(addr_t taddr, size_t nbytes, void* dst) override;
+  void write_chunk(addr_t taddr, size_t nbytes, const void* src) override;
 };
 
-std::string testchip_vpi_tsi_t::decode_address(const long long address,
-                                               int& word_index) {
+vpiHandle testchip_vpi_tsi_t::get_handle(const uint64_t address) {
   uint32_t bank_size = CACHE_SIZE / NUM_BANKS;
   uint32_t subbank_size = bank_size / NUM_SUBBANKS;
 
   int bank_index = address / bank_size;
   int subbank_index = (address % bank_size) / subbank_size;
-  word_index = (address % subbank_size) / NUM_BYTES;
+  int row_index = (address % subbank_size) / NUM_BYTES;
   int macro_index = (address % NUM_BYTES) / MACRO_WIDTH;
 
   std::string bank_prefix =
@@ -43,10 +45,61 @@ std::string testchip_vpi_tsi_t::decode_address(const long long address,
       subbank_index ? "ram_" + std::to_string(subbank_index) : "ram";
   std::string macro_prefix = "mem_0_" + std::to_string(macro_index);
 
-  std::string path_to_ram = "TestDriver.testHarness.chiptop0.system." +
-                            bank_prefix + "." + subbank_prefix +
-                            ".mem.mem_ext." + macro_prefix + ".u_ram_core.memory";
-  return path_to_ram;
+  std::string path_to_ram =
+      "TestDriver.testHarness.chiptop0.system." + bank_prefix + "." +
+      subbank_prefix + ".mem.mem_ext." + macro_prefix + ".u_ram_core.memory";
+
+  vpiHandle ram_handle =
+      vpi_handle_by_name((PLI_BYTE8*)path_to_ram.c_str(), NULL);
+  if (!ram_handle) {
+    std::cerr << "Could not find memory handle: " << path_to_ram << std::endl;
+    std::abort();
+  }
+
+  vpiHandle elem = vpi_handle_by_index(ram_handle, row_index);
+  if (!elem) {
+    std::cerr << "Could not find element handle: " << row_index << std::endl;
+    std::abort();
+  }
+
+  return elem;
+}
+
+void testchip_vpi_tsi_t::write_byte(uint64_t addr, uint8_t byte) {
+  vpiHandle elem = get_handle(addr);
+
+  int byte_offset = addr % MACRO_WIDTH;
+  int chunk_index = byte_offset / 4;
+  int bit_in_chunk = (byte_offset % 4) * 8;
+
+  s_vpi_value value;
+  value.format = vpiVectorVal;
+  vpi_get_value(elem, &value);
+
+  uint32_t chunk = value.value.vector[chunk_index].aval;
+  chunk &= ~(0xFFu << bit_in_chunk);
+  chunk |= (static_cast<uint32_t>(byte) << bit_in_chunk);
+  value.value.vector[chunk_index].aval = chunk;
+
+  vpi_put_value(elem, &value, NULL, vpiNoDelay);
+}
+
+uint8_t testchip_vpi_tsi_t::read_byte(uint64_t addr) {
+  vpiHandle elem = get_handle(addr);
+
+  int byte_offset = addr % MACRO_WIDTH;
+  int chunk_index = byte_offset / 4;         // which 32-bit word in the row
+  int bit_in_chunk = (byte_offset % 4) * 8;  // bit offset inside the chunk
+
+  s_vpi_value value;
+  value.format = vpiVectorVal;
+  vpi_get_value(elem, &value);
+
+  // Extract the correct byte
+  uint32_t chunk = value.value.vector[chunk_index].aval;
+  uint8_t result = static_cast<uint8_t>((chunk >> bit_in_chunk) & 0xFFu);
+
+  return result;
 }
 
 void testchip_vpi_tsi_t::write_chunk(addr_t taddr, size_t nbytes,
@@ -74,51 +127,15 @@ void testchip_vpi_tsi_t::write_chunk(addr_t taddr, size_t nbytes,
   }
 
   if (taddr < BASE_ADDR || taddr > END_ADDR) {
-    vpi_printf((PLI_BYTE8*)"ERROR: Address %08x is out of range\n", taddr);
+    std::cerr << "ERROR: Address " << std::hex << taddr << " is out of range"
+              << std::dec << std::endl;
     throw std::runtime_error("Write address out of range!");
   }
-
-  vpi_printf((PLI_BYTE8*)"Writing %zu bytes to address %08x\n", nbytes, taddr);
 
   taddr -= BASE_ADDR;  // Adjust address to match the memory map
 
   for (size_t i = 0; i < nbytes; i++) {
-    uint8_t byte = src_data[i];
-
-    int word_index;
-    std::string path_to_ram = decode_address(taddr + i, word_index);
-    std::cerr << "Writing byte to RAM at: " << path_to_ram << std::endl;
-
-    vpiHandle ram_handle =
-        vpi_handle_by_name(strdup(path_to_ram.c_str()), NULL);
-    if (ram_handle == NULL) {
-      std::cerr << "Could not find memory handle: " << path_to_ram << std::endl;
-      std::abort();
-    }
-
-    vpiHandle elem = vpi_handle_by_index(ram_handle, word_index);
-    if (!elem) {
-      std::cerr << "Could not find word handle: " << word_index << std::endl;
-      std::abort();
-    }
-
-    s_vpi_value value;
-    value.format = vpiVectorVal;
-    vpi_get_value(elem, &value);
-
-    uint64_t reg_val =
-        (static_cast<uint64_t>(value.value.vector[1].aval) << 32) |
-        static_cast<uint64_t>(value.value.vector[0].aval);
-
-    // Modify only the targeted byte
-    int byte_offset = (taddr + i) % NUM_BYTES;
-    reg_val &= ~(0xFFULL << (byte_offset * 8));
-    reg_val |= (static_cast<uint64_t>(byte) << (byte_offset * 8));
-
-    value.value.vector[0].aval = static_cast<uint32_t>(reg_val);
-    value.value.vector[1].aval = static_cast<uint32_t>((reg_val >> 32));
-
-    vpi_put_value(elem, &value, NULL, vpiNoDelay);
+    write_byte(taddr + i, src_data[i]);
   }
 }
 
@@ -126,39 +143,15 @@ void testchip_vpi_tsi_t::read_chunk(addr_t taddr, size_t nbytes, void* dst) {
   uint8_t* result = static_cast<uint8_t*>(dst);
 
   if (taddr < BASE_ADDR || taddr > END_ADDR) {
-    vpi_printf((PLI_BYTE8*)"ERROR: Address %08x is out of range\n", taddr);
+    std::cerr << "ERROR: Address " << std::hex << taddr << " is out of range"
+              << std::dec << std::endl;
     throw std::runtime_error("Read address out of range!");
   }
 
   taddr -= BASE_ADDR;  // Adjust address to match the memory map
 
   for (int i = 0; i < nbytes; ++i) {
-    int word_index;
-    std::string path_to_ram = decode_address(taddr + i, word_index);
-
-    vpiHandle ram_handle =
-        vpi_handle_by_name(strdup(path_to_ram.c_str()), NULL);
-    if (ram_handle == NULL) {
-      std::cerr << "Could not find memory handle: " << path_to_ram << std::endl;
-      std::abort();
-    }
-
-    vpiHandle elem = vpi_handle_by_index(ram_handle, word_index);
-    if (!elem) {
-      std::cerr << "Could not find word handle: " << word_index << std::endl;
-      std::abort();
-    }
-
-    s_vpi_value value;
-    value.format = vpiVectorVal;
-    vpi_get_value(elem, &value);
-
-    uint64_t reg_val =
-        (static_cast<uint64_t>(value.value.vector[1].aval) << 32) |
-        static_cast<uint64_t>(value.value.vector[0].aval);
-
-    int byte_offset = (taddr + i) % NUM_BYTES;
-    result[i] = (reg_val >> (byte_offset * 8)) & 0xFF;
+    result[i] = read_byte(taddr + i);
   }
 }
 
