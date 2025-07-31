@@ -6,6 +6,10 @@ import multiprocessing as mp
 import pandas as pd
 import subprocess
 import re
+from deepdiff import DeepDiff
+from google.protobuf import text_format
+from google.protobuf.json_format import MessageToDict
+from quantized_training.codegen import param_pb2
 
 VOYAGER_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "../../generators/voyager")
@@ -14,7 +18,7 @@ ACCELERATOR_DIR = os.path.join(VOYAGER_DIR, "accelerator")
 
 
 def print_test_results(test_results, layers, output_folder):
-    columns = ["Model", "Layer", "Status", "Runtime", "Ideal", "RuntimeType"]
+    columns = ["Model", "Layer", "Status", "Runtime", "Ideal", "RuntimeType", "Count"]
     if len(test_results[0]) == 3:
         columns = columns[:3]
 
@@ -55,19 +59,25 @@ def print_test_results(test_results, layers, output_folder):
         if "Runtime" in model_df.columns:
             print("Runtime:")
             print(
-                model_df[["Layer", "Runtime", "Ideal", "RuntimeType"]].to_string(
-                    index=False
-                ),
+                model_df[
+                    ["Layer", "Runtime", "Ideal", "RuntimeType", "Count"]
+                ].to_string(index=False),
                 flush=True,
             )
-            utilization = model_df["Ideal"].sum() / model_df["Runtime"].sum()
-            matrix_runtime = model_df[model_df["RuntimeType"] == "matrix"][
-                "Runtime"
-            ].sum()
-            matrix_ideal = model_df[model_df["RuntimeType"] == "matrix"]["Ideal"].sum()
-            matri_utilization = matrix_ideal / matrix_runtime
+            utilization = (model_df["Ideal"] * model_df["Count"]).sum() / (
+                model_df["Runtime"] * model_df["Count"]
+            ).sum()
+            matrix_runtime = (
+                model_df[model_df["RuntimeType"] == "matrix"]["Runtime"]
+                * model_df[model_df["RuntimeType"] == "matrix"]["Count"]
+            ).sum()
+            matrix_ideal = (
+                model_df[model_df["RuntimeType"] == "matrix"]["Ideal"]
+                * model_df[model_df["RuntimeType"] == "matrix"]["Count"]
+            ).sum()
+            matrix_utilization = matrix_ideal / matrix_runtime
             print(f"Utilization: {utilization:.3f}")
-            print(f"Matrix Utilization: {matri_utilization:.3f}")
+            print(f"Matrix Utilization: {matrix_utilization:.3f}")
 
     # concatentate all sorted model DataFrames into a single DataFrame and save to pickle
     pd.concat(sorted_df).to_pickle(f"{output_folder}/test_results.pkl")
@@ -106,73 +116,57 @@ def run_rtl_simulation(model, layer, output_folder, env_vars, config_path, debug
             timeout=2 * 60 * 60,  # 2 hours
         )
 
-    # search if the test passed
-    p = subprocess.Popen(
-        ["grep", "Error count: 0", f"{output_folder}/{model}_{layer}.log"],
-        stdout=subprocess.PIPE,
-    )
-    p.communicate()
-    success = p.returncode == 0
+    log_file = f"{output_folder}/{model}_{layer}.log"
 
-    if success:
-        # capture ideal runtime number in the log file
-        # can either be "Matrix unit ideal runtime: " or "Vector unit ideal runtime: "
-        p = subprocess.Popen(
-            [
-                "grep",
-                "-oP",
-                "(?<=matrix unit ideal runtime: ).\d+",
-                f"{output_folder}/{model}_{layer}.log",
-            ],
-            stdout=subprocess.PIPE,
-        )
+    success = False
+    runtime = 0
+    ideal = 0
+    runtime_type = ""
 
-        match = p.communicate()[0]
+    if os.path.exists(log_file):
+        with open(log_file, "r") as file:
+            content = file.read()
 
-        if match:
-            runtime_type = "matrix"
-        else:
-            p = subprocess.Popen(
-                [
-                    "grep",
-                    "-oP",
-                    "(?<=vector unit ideal runtime: ).\d+",
-                    f"{output_folder}/{model}_{layer}.log",
-                ],
-                stdout=subprocess.PIPE,
+        # 1. Check if test passed
+        success = bool(re.search(r"Error\s+count:\s+0", content))
+        
+        if success:
+            # 2. Capture runtime type (Matrix or Vector) and ideal runtime
+            match = re.search(
+                r"(matrix|vector)\s+unit\s+ideal\s+runtime:\s+(\d+)\s*ns",
+                content,
+                flags=re.IGNORECASE,
             )
-            match, error = p.communicate()
-            assert not error
+            if match:
+                runtime_type = match.group(1).lower()  # "matrix" or "vector"
+                ideal = int(match.group(2))
 
-            runtime_type = "vector"
+            # 3. Capture runtime based on type
+            if runtime_type == "matrix":
+                runtime_match = re.search(
+                    r"Accelerator\s+Runtime:\s+(\d+)\s*cycles", content, flags=re.IGNORECASE
+                )
+            elif runtime_type == "vector":
+                runtime_match = re.search(
+                    r"Vector\s+Unit\s+Runtime:\s+(\d+)\s*cycles", content, flags=re.IGNORECASE
+                )
+            else:
+                runtime_match = None
 
-        ideal = int(match.decode("utf-8").strip())
+            if runtime_match:
+                runtime = int(runtime_match.group(1))
 
-        # capture runtime number in the log file
-        if runtime_type == "matrix":
-            search_text = "Accelerator Runtime: "
-        else:
-            search_text = "Vector Unit Runtime: "
-        p = subprocess.Popen(
-            [
-                "grep",
-                "-oP",
-                f"(?<={search_text}).\d+",
-                f"{output_folder}/{model}_{layer}.log",
-            ],
-            stdout=subprocess.PIPE,
-        )
-        runtime = int(p.communicate()[0].decode("utf-8").strip())
-    else:
-        runtime = 0
-        ideal = 0
-        runtime_type = ""
-
-    return (model, layer, success, runtime, ideal, runtime_type)
+    return (model, layer, success, runtime, ideal, runtime_type, 1)  # Default count of 1
 
 
 def run_rtl_simulations(
-    layers, num_processes, results_folder, env_vars, config_path, debug
+    layers,
+    layer_counts,
+    num_processes,
+    results_folder,
+    env_vars,
+    config_path,
+    debug
 ):
     pool = mp.Pool(num_processes)
 
@@ -189,6 +183,75 @@ def run_rtl_simulations(
     pool.join()
 
     return print_test_results(test_results, layers, results_folder)
+
+
+def add_layers(network, layers, layer_counts, uniquify, env_vars):
+    all_layers = []
+
+    layers[network] = []
+    layer_counts[network] = {}
+
+    if not uniquify:
+        with open(
+            f"{ACCELERATOR_DIR}/test/compiler/networks/{network}/{env_vars['DATATYPE']}/layers.txt",
+            "r",
+        ) as f:
+            layers[network] = f.read().splitlines()
+            layer_counts[network] = {layer: 1 for layer in layers[network]}
+    else:
+        # open the proto file
+        with open(
+            f"{ACCELERATOR_DIR}/test/compiler/networks/{network}/{env_vars['DATATYPE']}/model.txt",
+            "r",
+        ) as f:
+            contents = f.read()
+        params = param_pb2.Model()
+        text_format.Parse(contents, params)
+
+        # convert to json
+        params_dict = MessageToDict(params, preserving_proto_field_name=True)
+
+        def delete_nested_keys(data, key):
+            # if the current element is a dict
+            if isinstance(data, dict):
+                # use list() to create a copy, avoiding modifying the dictionary while iterating
+                for k in list(data.keys()):
+                    if k == key:
+                        del data[k]
+                    else:
+                        # recursively check the value of the current key
+                        delete_nested_keys(data[k], key)
+
+            # if the current element is a list
+            elif isinstance(data, list):
+                for item in data:
+                    delete_nested_keys(item, key)
+
+        unique_layers = {}
+        for op in params_dict["ops"]:
+            # skip nop layers
+            if "op" in op and op["op"]["op"] == "nop":
+                continue
+
+            name = op["op"]["name"] if "op" in op else op["fused_op"]["name"]
+
+            # remove the name, memory, and node fields from the op
+            delete_nested_keys(op, "name")
+            delete_nested_keys(op, "memory")
+            delete_nested_keys(op, "scratchpad")
+            delete_nested_keys(op, "node")
+
+            is_unique_layer = True
+            for op_name, op_val in unique_layers.items():
+                if not DeepDiff(op, op_val, ignore_order=True):
+                    layer_counts[network][op_name] += 1
+                    is_unique_layer = False
+                    break
+
+            if is_unique_layer:
+                unique_layers[name] = op
+                layers[network].append(name)
+                layer_counts[network][name] = 1
 
 
 def main():
@@ -215,6 +278,11 @@ def main():
         help="Run the simulation in debug mode to generate waveforms",
     )
     argparser.add_argument("--config", required=True, help="SoC config name")
+    argparser.add_argument(
+        "--uniquify_layers",
+        action="store_true",
+        help="Remove duplicated layers in the model",
+    )
     args = argparser.parse_args()
     args.models = [s.strip() for s in args.models.split(",")]
 
@@ -263,19 +331,29 @@ def main():
         datatype_width = 8
     elif env_vars["DATATYPE"] == "MXINT8":
         datatype_width = 8
+    elif env_vars["DATATYPE"] == "MXNF4":
+        datatype_width = 4
     else:
         raise ValueError(
             f"Unknown width for DATATYPE: {env_vars['DATATYPE']}. Please add it to run_voyager.py"
         )
-    banking_width = (
+    bank_width = int(
         datatype_width
-        * 2
         * max(int(env_vars["IC_DIMENSION"]), int(env_vars["OC_DIMENSION"]))
+        / 8
     )
-    env_vars["EXTRA_COMPILER_FLAGS"] = f"--bank_width {banking_width}"
+    env_vars["EXTRA_COMPILER_FLAGS"] = f"--bank_width {bank_width}"
+    env_vars["SOC_SIM"] = "1"
+    env_vars.setdefault("CACHE_SIZE", "4194304")
+    env_vars.setdefault("NUM_BANKS", "8")
+    env_vars.setdefault("BANK_WIDTH", str(bank_width))
+    env_vars.setdefault("SPDLOG_LEVEL", "DEBUG")
+
+    print(env_vars)
 
     # Compile the model(s) and get list of layers
     layers = {}
+    layer_counts = {}
     if args.tests is None:
         for network in args.models:
             env_vars["NETWORK"] = network
@@ -283,18 +361,21 @@ def main():
                 ["make", "-C", ACCELERATOR_DIR, "network-proto"],
                 env=env_vars,
             )
-            with open(
-                f"{ACCELERATOR_DIR}/test/compiler/networks/{network}/{env_vars['DATATYPE']}/layers.txt",
-                "r",
-            ) as f:
-                layers[network] = f.read().splitlines()
+            add_layers(network, layers, layer_counts, args.uniquify_layers, env_vars)
     else:
         assert (
             len(args.models) == 1
         ), "Only one model can be specified when using --tests"
         layers[args.models[0]] = args.tests.split(",")
+        layer_counts[args.models[0]] = {layer: 1 for layer in layers[args.models[0]]}
 
-    config_path = f"{env_vars['DATATYPE']}/{env_vars['IC_DIMENSION']}x{env_vars['OC_DIMENSION']}_{env_vars['INPUT_BUFFER_SIZE']}x{env_vars['WEIGHT_BUFFER_SIZE']}x{env_vars['ACCUM_BUFFER_SIZE']}"
+    config_path = (
+        f"{env_vars['DATATYPE']}/"
+        f"{env_vars['IC_DIMENSION']}x{env_vars['OC_DIMENSION']}_"
+        f"{env_vars['INPUT_BUFFER_SIZE']}x{env_vars['WEIGHT_BUFFER_SIZE']}x{env_vars['ACCUM_BUFFER_SIZE']}_"
+        f"{env_vars['DOUBLE_BUFFERED_ACCUM_BUFFER']}_"
+        f"{env_vars['SUPPORT_MVM']}"
+    )
 
     # Build the simulation binary
     print("Building the simulation binary...")
@@ -339,6 +420,7 @@ def main():
 
     success = run_rtl_simulations(
         layers,
+        layer_counts,
         args.num_processes,
         results_folder,
         env_vars,

@@ -45,10 +45,11 @@ class DigitalTop(
     with rerocc.CanHaveReRoCCTiles                             // Support tiles that instantiate rerocc-attached accelerators
     with hyperram.CanHavePeripheryHyperRAM                     // Enables optionally adding a HyperRAM controller
     with sphinx.CanHavePeripheryGPIODriver
-    with sphinx.CanHaveBankedScratchpad
-    with voyager.CanHavePeripheryVoyager {
+    with voyager.CanHavePeripheryVoyager                       // Enables adding a Voyager-based DNN accelerator
+    with voyager.CanHaveBankedScratchpad                       // Enables optionally adding a banked scratchpad
+    {
   override lazy val desiredName = p(DigitalTopName)
-  override lazy val module = new DigitalTopModule(this)
+  override lazy val module      = new DigitalTopModule(this)
 }
 
 class DigitalTopModule(l: DigitalTop) extends ChipyardSystemModule(l) with freechips.rocketchip.util.DontTouch
