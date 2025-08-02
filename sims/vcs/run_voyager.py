@@ -337,19 +337,24 @@ def main():
         raise ValueError(
             f"Unknown width for DATATYPE: {env_vars['DATATYPE']}. Please add it to run_voyager.py"
         )
+
     bank_width = int(
         datatype_width
-        * max(int(env_vars["IC_DIMENSION"]), int(env_vars["OC_DIMENSION"]))
+        * min(int(env_vars["IC_DIMENSION"]), int(env_vars["OC_DIMENSION"]))
         / 8
     )
-    env_vars["EXTRA_COMPILER_FLAGS"] = f"--bank_width {bank_width}"
-    env_vars["SOC_SIM"] = "1"
-    env_vars.setdefault("CACHE_SIZE", "4194304")
-    env_vars.setdefault("NUM_BANKS", "8")
+
+    # Default to 8MB of scratchpad memory with 8 banks
+    cache_size = env_vars.setdefault("CACHE_SIZE", "8388608")
+    num_banks = env_vars.setdefault("NUM_BANKS", "8")
     env_vars.setdefault("BANK_WIDTH", str(bank_width))
+    env_vars.setdefault("EXTRA_COMPILER_FLAGS", f"--bank_width {bank_width}")
+    env_vars.setdefault("SOC_SIM", "1")
     env_vars.setdefault("SPDLOG_LEVEL", "DEBUG")
 
-    print(env_vars)
+    # Default to use the same scratchpad configuration as the accelerator
+    env_vars.setdefault("SOC_CACHE_SIZE", cache_size)
+    env_vars.setdefault("SOC_NUM_BANKS", num_banks)
 
     # Compile the model(s) and get list of layers
     layers = {}
