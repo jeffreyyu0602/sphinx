@@ -49,7 +49,7 @@ $(sim_files): $(SIM_FILE_REQS) $(ALL_MODS_FILELIST) | $(GEN_COLLATERAL_DIR)
 #########################################################################################
 # Technology-specific settings
 #########################################################################################
-TOP_MACROCOMPILER_MODE ?= --mode strict --library $(base_dir)/vlsi/tech/tsmc7/sram.json
+TOP_MACROCOMPILER_MODE ?= --mode strict --library $(base_dir)/generators/chipyard/src/main/resources/mems/macro.json
 
 #########################################################################################
 # import other necessary rules and variables
@@ -63,7 +63,7 @@ VCS = vcs -full64
 
 VCS_OPTS = $(VCS_CC_OPTS) $(VCS_NONCC_OPTS) $(SIM_PREPROC_DEFINES) $(VCS_PREPROC_DEFINES)
 
-VCS_OPTS += -f $(base_dir)/generators/sphinx-block/sims/tsmc7_files.f
+VCS_OPTS += -f $(base_dir)/generators/chipyard/src/main/resources/mems/tsmc7_files.f
 
 #########################################################################################
 # vcs build paths

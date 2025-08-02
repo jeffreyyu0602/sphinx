@@ -10,9 +10,9 @@
 class testchip_vpi_tsi_t : public testchip_tsi_t {
  public:
   static const int NUM_BANKS = 6;
-  static const int NUM_SUBBANKS = 2;
-  static const int NUM_BYTES = 32;
-  static const int MACRO_WIDTH = 8;
+  static const int NUM_SUBBANKS = 1;
+  static const int BANK_WIDTH = 32;
+  static const int MACRO_WIDTH = 16;
 
   static const uint64_t CACHE_SIZE = 0.75 * 1024 * 1024;
   static const uint64_t BASE_ADDR = 0x40000000;
@@ -36,8 +36,8 @@ vpiHandle testchip_vpi_tsi_t::get_handle(const uint64_t address) {
 
   int bank_index = address / bank_size;
   int subbank_index = (address % bank_size) / subbank_size;
-  int row_index = (address % subbank_size) / NUM_BYTES;
-  int macro_index = (address % NUM_BYTES) / MACRO_WIDTH;
+  int row_index = (address % subbank_size) / BANK_WIDTH;
+  int macro_index = (address % BANK_WIDTH) / MACRO_WIDTH;
 
   std::string bank_prefix =
       bank_index ? "bank_" + std::to_string(bank_index) : "bank";

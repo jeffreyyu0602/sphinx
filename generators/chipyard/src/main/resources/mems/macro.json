@@ -1,9 +1,9 @@
 [
   {
     "type": "sram",
-    "name": "TS1N7SBSVTA2048X64M8WZHOCP",
+    "name": "TS1N7SBSVTA512X64M2WZHOCP",
     "family": "1rw",
-    "depth": "2048",
+    "depth": "512",
     "width": 64,
     "ports": [
       {
@@ -39,7 +39,7 @@
       },
       {
         "name": "FADIO",
-        "width": 6,
+        "width": 5,
         "type": "constant",
         "value": 0
       },
@@ -189,9 +189,9 @@
   },
   {
     "type": "sram",
-    "name": "TS1N7SBSVTA512X256M2WZHOCP",
+    "name": "TS1N7SBSVTA128X256M2WZHOCP",
     "family": "1rw",
-    "depth": "512",
+    "depth": "128",
     "width": 256,
     "ports": [
       {
@@ -214,13 +214,13 @@
     ],
     "extra ports": [
       {
-        "name": "DSLP",
+        "name": "SD",
         "width": 1,
         "type": "constant",
         "value": 0
       },
       {
-        "name": "SD",
+        "name": "DSLP",
         "width": 1,
         "type": "constant",
         "value": 0
@@ -283,10 +283,10 @@
   },
   {
     "type": "sram",
-    "name": "TS1N7MBSVTA8192X64M8QWZHOCP",
+    "name": "TS1N7MBSVTA4096X128M4QWZHOCP",
     "family": "1rw",
-    "depth": "8192",
-    "width": 64,
+    "depth": "4096",
+    "width": 128,
     "ports": [
       {
         "chip enable port name": "CEB",
@@ -308,20 +308,20 @@
     ],
     "extra ports": [
       {
-        "name": "DSLP",
-        "width": 1,
-        "type": "constant",
-        "value": 0
-      },
-      {
         "name": "SD",
         "width": 1,
         "type": "constant",
         "value": 0
       },
       {
+        "name": "DSLP",
+        "width": 1,
+        "type": "constant",
+        "value": 0
+      },
+      {
         "name": "FADIO",
-        "width": 6,
+        "width": 7,
         "type": "constant",
         "value": 0
       },

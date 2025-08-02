@@ -1,0 +1,4 @@
+/tsmc7/IP/sram_macros/ts1n7sbsvta512x64m2wzhocp_130b/VERILOG/SYN/ts1n7sbsvta512x64m2wzhocp_syn.v
+/tsmc7/IP/sram_macros/ts1n7sbsvta64x168m2wzhocp_130b/VERILOG/SYN/ts1n7sbsvta64x168m2wzhocp_syn.v
+/tsmc7/IP/sram_macros/ts1n7sbsvta128x256m2wzhocp_130b/VERILOG/SYN/ts1n7sbsvta128x256m2wzhocp_syn.v
+/tsmc7/IP/sram_macros/ts1n7mbsvta4096x128m4qwzhocp_130a/VERILOG/SYN/ts1n7mbsvta4096x128m4qwzhocp_syn.v

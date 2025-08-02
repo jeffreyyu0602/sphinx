@@ -34,7 +34,7 @@ class SphinxConfig
           base     = 0x40000000L,
           size     = 768 * 1024,
           banks    = 6,
-          subBanks = 2,
+          subBanks = 1,
         ) ++
         new voyager.WithVoyager("MXNF4", 64, 64, 256, 256, 256, 1.0, "tsmc7", "E5M3", true, true) ++
         new chipyard.harness.WithVoyagerVerification ++
