@@ -113,7 +113,7 @@ class VoyagerDebugConfig
 class VoyagerRocketConfig
     extends Config(
       new voyager.WithDefaultMaxBurstSize ++
-      new freechips.rocketchip.rocket.WithNHugeCores(1) ++ // single rocket-core
+        new freechips.rocketchip.rocket.WithNHugeCores(1) ++ // single rocket-core
         new AbstractConfig
     )
 
@@ -254,9 +254,9 @@ class AbstractConfig
         /** use default bootrom */
         new testchipip.soc.WithSbusScratchpad(
           base     = 0x40000000L,
-          size     = sys.env.get("CACHE_SIZE").map(v => BigInt(v)).getOrElse(BigInt(4 * 1024 * 1024)),
-          banks    = sys.env.get("NUM_BANKS").map(_.toInt).getOrElse(8),
-          subBanks = sys.env.get("NUM_SUB_BANKS").map(_.toInt).getOrElse(2)
+          size     = sys.env.get("SOC_CACHE_SIZE").map(v => BigInt(v)).getOrElse(BigInt(8 * 1024 * 1024)),
+          banks    = sys.env.get("SOC_NUM_BANKS").map(_.toInt).getOrElse(8),
+          subBanks = sys.env.get("NUM_SUBBANKS").map(_.toInt).getOrElse(1),
         ) ++
 
         // Coherency settings
