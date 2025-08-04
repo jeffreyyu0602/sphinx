@@ -311,16 +311,19 @@ def main():
             stderr=subprocess.STDOUT,
         )
 
+    preproc_defines = ""
+
     # Set the environment variables from the sh file
     env_file = f"{ACCELERATOR_DIR}/build/configs/{args.config}/config.sh"
     with open(env_file, "r") as f:
         for line in f:
-            match = re.match(r"export\s+(\w+)=(.*)", line.strip())
-            if match:
-                var, val = match.groups()
-                # Remove surrounding quotes if present
-                val = val.strip("'\"")
-                env_vars[var] = val
+            if (match := re.match(r"export\s+(\w+)=(.*)", line.strip())) is None:
+                continue
+            var, val = match.groups()
+            env_vars[var] = val.strip("'\"")
+            preproc_defines += (
+                f"-D{env_vars[var]} " if var == "DATATYPE" else f"-D{var}={env_vars[var]} "
+            )
 
     # Set the memory banking configuration for the compiler
     # accesses need to be aligned to accelerator's data width
@@ -351,6 +354,7 @@ def main():
     env_vars.setdefault("EXTRA_COMPILER_FLAGS", f"--bank_width {bank_width}")
     env_vars.setdefault("SOC_SIM", "1")
     env_vars.setdefault("SPDLOG_LEVEL", "DEBUG")
+    env_vars.setdefault("EXTRA_SIM_CXXFLAGS", preproc_defines)
 
     # Default to use the same scratchpad configuration as the accelerator
     env_vars.setdefault("SOC_CACHE_SIZE", cache_size)

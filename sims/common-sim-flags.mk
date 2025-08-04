@@ -22,9 +22,6 @@ SIM_CXXFLAGS = \
 	-I$(base_dir)/generators/voyager/accelerator/lib/spdlog/include \
 	-I/cad/mentor/2024.2_1/Mgc_home/shared/include \
 	-I$(CONDA_PREFIX)/include \
-	-D$(DATATYPE) \
-	-DIC_DIMENSION=$(IC_DIMENSION) \
-	-DOC_DIMENSION=$(OC_DIMENSION) \
 	-DNO_SYSC \
 	$(EXTRA_SIM_CXXFLAGS)
 
