@@ -8,6 +8,98 @@ class E4M3x16x16
       new voyager.WithVoyager("E4M3", 16, 16, 1024, 1024, 1024, 5.0, "generic") ++
         new chipyard.harness.WithVoyagerVerification ++
         new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new chipyard.config.WithSystemBusWidth(128) ++
+        new VoyagerRocketConfig
+    )
+
+class Posit8x16x16
+    extends Config(
+      new voyager.WithVoyager("P8_1", 16, 16, 1024, 1024, 1024, 5.0, "generic") ++
+        new chipyard.harness.WithVoyagerVerification ++
+        new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new chipyard.config.WithSystemBusWidth(128) ++
+        new VoyagerRocketConfig
+    )
+
+class INT8x16x16
+    extends Config(
+      new voyager.WithVoyager("INT8", 16, 16, 1024, 1024, 1024, 5.0, "generic") ++
+        new chipyard.harness.WithVoyagerVerification ++
+        new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new chipyard.config.WithSystemBusWidth(128) ++
+        new VoyagerRocketConfig
+    )
+
+class MXINT8x16x16
+    extends Config(
+      new voyager.WithVoyager("MXINT8", 16, 16, 1024, 1024, 1024, 5.0, "generic", "E8M0") ++
+        new chipyard.harness.WithVoyagerVerification ++
+        new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new chipyard.config.WithSystemBusWidth(128) ++
+        new VoyagerRocketConfig
+    )
+
+class MXNF4x64x64
+    extends Config(
+      new voyager.WithVoyager("MXNF4", 64, 64, 1024, 1024, 1024, 5.0, "generic", "E5M3", true, true) ++
+        new chipyard.harness.WithVoyagerVerification ++
+        new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new chipyard.config.WithSystemBusWidth(256) ++
+        new voyager.WithMaxBurstSize(128) ++
+        new VoyagerRocketConfig
+    )
+
+class E4M3x32x64
+    extends Config(
+      new voyager.WithVoyager("E4M3", 32, 64, 1024, 1024, 1024, 5.0, "generic") ++
+        new chipyard.harness.WithVoyagerVerification ++
+        new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new chipyard.config.WithSystemBusWidth(256) ++
+        new VoyagerRocketConfig
+    )
+
+class E4M3x32x32
+    extends Config(
+      new voyager.WithVoyager("E4M3", 32, 32, 1024, 1024, 1024, 5.0, "generic") ++
+        new chipyard.harness.WithVoyagerVerification ++
+        new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new chipyard.config.WithSystemBusWidth(256) ++
+        new VoyagerRocketConfig
+    )
+
+class E4M3x16x32
+    extends Config(
+      new voyager.WithVoyager("E4M3", 16, 32, 1024, 1024, 1024, 5.0, "generic") ++
+        new chipyard.harness.WithVoyagerVerification ++
+        new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new chipyard.config.WithSystemBusWidth(128) ++
+        new VoyagerRocketConfig
+    )
+
+class E4M3x8x16
+    extends Config(
+      new voyager.WithVoyager("E4M3", 8, 16, 1024, 1024, 1024, 5.0, "generic") ++
+        new chipyard.harness.WithVoyagerVerification ++
+        new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new chipyard.config.WithSystemBusWidth(64) ++
+        new VoyagerRocketConfig
+    )
+
+class E4M3x8x8
+    extends Config(
+      new voyager.WithVoyager("E4M3", 8, 8, 1024, 1024, 1024, 5.0, "generic") ++
+        new chipyard.harness.WithVoyagerVerification ++
+        new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new chipyard.config.WithSystemBusWidth(64) ++
+        new VoyagerRocketConfig
+    )
+
+class E4M3x4x8
+    extends Config(
+      new voyager.WithVoyager("E4M3", 4, 8, 1024, 1024, 1024, 5.0, "generic") ++
+        new chipyard.harness.WithVoyagerVerification ++
+        new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+        new chipyard.config.WithSystemBusWidth(32) ++
         new VoyagerRocketConfig
     )
 
@@ -20,7 +112,8 @@ class VoyagerDebugConfig
 
 class VoyagerRocketConfig
     extends Config(
-      new freechips.rocketchip.rocket.WithNHugeCores(1) ++ // single rocket-core
+      new voyager.WithDefaultMaxBurstSize ++
+        new freechips.rocketchip.rocket.WithNHugeCores(1) ++ // single rocket-core
         new AbstractConfig
     )
 
@@ -160,9 +253,10 @@ class AbstractConfig
         new chipyard.config.WithBootROM ++
         /** use default bootrom */
         new testchipip.soc.WithSbusScratchpad(
-          base = 0x40000000L,
-          /** add 50 MiB on-chip scratchpad */
-          size = 1024 * 1024 * 1024,
+          base     = 0x40000000L,
+          size     = sys.env.get("SOC_CACHE_SIZE").map(v => BigInt(v)).getOrElse(BigInt(8 * 1024 * 1024)),
+          banks    = sys.env.get("SOC_NUM_BANKS").map(_.toInt).getOrElse(8),
+          subBanks = sys.env.get("NUM_SUBBANKS").map(_.toInt).getOrElse(1),
         ) ++
 
         // Coherency settings

@@ -3,6 +3,12 @@ stages:
   - test
   - cleanup
 
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+    - when: never
+
 variables:
   GIT_SUBMODULE_STRATEGY: none
   GIT_CLEAN_FLAGS: -ffdx
