@@ -2,7 +2,10 @@
 import os
 import argparse
 import datetime
+import json
+import math
 import multiprocessing as mp
+import numpy as np
 import pandas as pd
 import subprocess
 import re
@@ -17,8 +20,29 @@ VOYAGER_DIR = os.path.abspath(
 ACCELERATOR_DIR = os.path.join(VOYAGER_DIR, "accelerator")
 
 
+def utilization(df):
+    max_tiles = int(os.environ.get("MAX_TILES", "1"))
+    count = df["Count"].to_numpy()
+    full_tiles = df["L2 Tiles"].to_numpy()
+    ideal = df["Ideal"].to_numpy()
+    runtime = df["Runtime"].to_numpy()
+
+    # Clip tiles to max_tiles
+    actual_tiles = np.minimum(full_tiles, max_tiles)
+
+    # Precompute common factor
+    weight = (full_tiles * count) / actual_tiles
+
+    numerator = np.sum(ideal * weight)
+    denominator = np.sum(runtime * weight)
+
+    return numerator / denominator if denominator != 0 else np.nan
+
+
 def print_test_results(test_results, layers, output_folder):
-    columns = ["Model", "Layer", "Status", "Runtime", "Ideal", "RuntimeType", "Count"]
+    columns = [
+        "Model", "Layer", "Status", "Runtime", "Ideal", "RuntimeType", "Count", "L2 Tiles"
+    ]
     if len(test_results[0]) == 3:
         columns = columns[:3]
 
@@ -45,48 +69,44 @@ def print_test_results(test_results, layers, output_folder):
         failed = model_df[model_df["Status"] == False]
 
         print("Passed:")
-        print(
-            passed["Layer"].to_string(index=False) if not passed.empty else "None",
-            flush=True,
-        )
+        print(passed["Layer"].to_string(index=False) if not passed.empty else "None")
         print("Failed:")
-        print(
-            failed["Layer"].to_string(index=False) if not failed.empty else "None",
-            flush=True,
-        )
+        print(failed["Layer"].to_string(index=False) if not failed.empty else "None")
 
         # if runtime column exists, print runtime of each layer
         if "Runtime" in model_df.columns:
             print("Runtime:")
             print(
-                model_df[
-                    ["Layer", "Runtime", "Ideal", "RuntimeType", "Count"]
-                ].to_string(index=False),
+                model_df[["Layer", "Runtime", "Ideal", "RuntimeType", "Count", "L2 Tiles"]]
+                .to_string(index=False),
                 flush=True,
             )
-            utilization = (model_df["Ideal"] * model_df["Count"]).sum() / (
-                model_df["Runtime"] * model_df["Count"]
-            ).sum()
-            matrix_runtime = (
-                model_df[model_df["RuntimeType"] == "matrix"]["Runtime"]
-                * model_df[model_df["RuntimeType"] == "matrix"]["Count"]
-            ).sum()
-            matrix_ideal = (
-                model_df[model_df["RuntimeType"] == "matrix"]["Ideal"]
-                * model_df[model_df["RuntimeType"] == "matrix"]["Count"]
-            ).sum()
-            matrix_utilization = matrix_ideal / matrix_runtime
-            print(f"Utilization: {utilization:.3f}")
-            print(f"Matrix Utilization: {matrix_utilization:.3f}")
 
-    # concatentate all sorted model DataFrames into a single DataFrame and save to pickle
-    pd.concat(sorted_df).to_pickle(f"{output_folder}/test_results.pkl")
+            utilization_all    = utilization(model_df)
+            utilization_matrix = utilization(model_df[model_df["RuntimeType"] == "matrix"])
+
+            print(f"Utilization: {utilization_all:.3f}")
+            print(f"Matrix Utilization: {utilization_matrix:.3f}")
+
+    # concatentate all DataFrames into a single DataFrame and save to pickle and excel
+    combined_df = pd.concat(sorted_df)
+    combined_df.to_pickle(f"{output_folder}/test_results.pkl")
+    combined_df.to_excel(f"{output_folder}/test_results.xlsx", index=False)
 
     # return True if all tests passed
     return len(df[df["Status"] == False]) == 0
 
 
-def run_rtl_simulation(model, layer, output_folder, env_vars, config_path, debug):
+def run_rtl_simulation(
+    model,
+    layer,
+    layer_count,
+    tile_count,
+    output_folder,
+    env_vars,
+    config_path,
+    debug,
+):
     env_vars["NETWORK"] = model
     env_vars["TESTS"] = layer
 
@@ -156,12 +176,13 @@ def run_rtl_simulation(model, layer, output_folder, env_vars, config_path, debug
             if runtime_match:
                 runtime = int(runtime_match.group(1))
 
-    return (model, layer, success, runtime, ideal, runtime_type, 1)  # Default count of 1
+    return (model, layer, success, runtime, ideal, runtime_type, layer_count, tile_count)
 
 
 def run_rtl_simulations(
     layers,
     layer_counts,
+    tile_counts,
     num_processes,
     results_folder,
     env_vars,
@@ -176,7 +197,16 @@ def run_rtl_simulations(
         for test in tests:
             pool.apply_async(
                 run_rtl_simulation,
-                args=(model, test, results_folder, env_vars, config_path, debug),
+                args=(
+                    model,
+                    test,
+                    layer_counts[model][test],
+                    tile_counts[model][test],
+                    results_folder,
+                    env_vars,
+                    config_path,
+                    debug,
+                ),
                 callback=test_results.append,
             )
     pool.close()
@@ -185,18 +215,24 @@ def run_rtl_simulations(
     return print_test_results(test_results, layers, results_folder)
 
 
-def add_layers(network, layers, layer_counts, uniquify, env_vars):
-    all_layers = []
-
+def add_layers(network, layers, layer_counts, tile_counts, uniquify, skip_layers, env_vars):
     layers[network] = []
     layer_counts[network] = {}
+    tile_counts[network] = {}
+
+    skip_layers = [re.compile(p) for p in skip_layers] if skip_layers else []
 
     if not uniquify:
         with open(
             f"{ACCELERATOR_DIR}/test/compiler/networks/{network}/{env_vars['DATATYPE']}/layers.txt",
             "r",
         ) as f:
-            layers[network] = f.read().splitlines()
+            all_layers = f.read().splitlines()
+            # Filter out layers that should be skipped
+            layers[network] = [
+                layer for layer in all_layers
+                if not any(p.match(layer) for p in skip_layers)
+            ]
             layer_counts[network] = {layer: 1 for layer in layers[network]}
     else:
         # open the proto file
@@ -212,17 +248,12 @@ def add_layers(network, layers, layer_counts, uniquify, env_vars):
         params_dict = MessageToDict(params, preserving_proto_field_name=True)
 
         def delete_nested_keys(data, key):
-            # if the current element is a dict
             if isinstance(data, dict):
-                # use list() to create a copy, avoiding modifying the dictionary while iterating
                 for k in list(data.keys()):
                     if k == key:
                         del data[k]
                     else:
-                        # recursively check the value of the current key
                         delete_nested_keys(data[k], key)
-
-            # if the current element is a list
             elif isinstance(data, list):
                 for item in data:
                     delete_nested_keys(item, key)
@@ -235,11 +266,24 @@ def add_layers(network, layers, layer_counts, uniquify, env_vars):
 
             name = op["op"]["name"] if "op" in op else op["fused_op"]["name"]
 
+            # Skip layers that are in the skip list
+            if any(p.match(name) for p in skip_layers):
+                continue
+
             # remove the name, memory, and node fields from the op
             delete_nested_keys(op, "name")
             delete_nested_keys(op, "memory")
             delete_nested_keys(op, "scratchpad")
             delete_nested_keys(op, "node")
+
+            if "op" in op:
+                kwargs = op["op"]["kwargs"]
+            else:
+                kwargs = op["fused_op"]["op_list"][0]["kwargs"]
+
+            l2_values = kwargs.get("l2_tiling", {}).get("int_list", {}).get("values", [])
+            l2_values = [int(v) for v in l2_values]
+            l2_count = math.prod(l2_values) if l2_values else 1
 
             is_unique_layer = True
             for op_name, op_val in unique_layers.items():
@@ -252,6 +296,29 @@ def add_layers(network, layers, layer_counts, uniquify, env_vars):
                 unique_layers[name] = op
                 layers[network].append(name)
                 layer_counts[network][name] = 1
+                tile_counts[network][name] = l2_count
+
+
+def matches(value, rule_value):
+    if isinstance(rule_value, list):
+        return value in rule_value
+    else:
+        if rule_value == "*":
+            return True
+        else:
+            return value == rule_value
+
+
+def get_skip_layers(skip_rules, model, datatype, sim_type, block_size):
+    for rule in skip_rules:
+        if (
+            matches(model, rule["model"])
+            and matches(datatype, rule["datatype"])
+            and matches(sim_type, rule["sim_type"])
+            and matches(block_size, rule["block_size"])
+        ):
+            return set(rule["layers"])
+    return set()
 
 
 def main():
@@ -281,7 +348,12 @@ def main():
     argparser.add_argument(
         "--uniquify_layers",
         action="store_true",
-        help="Remove duplicated layers in the model",
+        help="Whether to remove duplicated layers in the model",
+    )
+    argparser.add_argument(
+        "--skip_layers",
+        action="store_true",
+        help="Whether to skip layers specified in the skip_rules.json",
     )
     args = argparser.parse_args()
     args.models = [s.strip() for s in args.models.split(",")]
@@ -301,6 +373,14 @@ def main():
     env_vars["CODEGEN_DIR"] = "test/compiler"
     env_vars["NETWORK"] = args.models[0]
 
+    # Default to 8MB of scratchpad memory with 8 banks
+    cache_size = env_vars.setdefault("CACHE_SIZE", "8388608")
+    num_banks = env_vars.setdefault("NUM_BANKS", "8")
+
+    # Default to use the same scratchpad configuration as the accelerator
+    env_vars.setdefault("SOC_CACHE_SIZE", cache_size)
+    env_vars.setdefault("SOC_NUM_BANKS", num_banks)
+
     # Generate SoC verilog
     print("Generating verilog...")
     with open(f"{results_folder}/verilog_generation.log", "w") as log_file:
@@ -311,19 +391,17 @@ def main():
             stderr=subprocess.STDOUT,
         )
 
-    preproc_defines = ""
-
     # Set the environment variables from the sh file
-    env_file = f"{ACCELERATOR_DIR}/build/configs/{args.config}/config.sh"
-    with open(env_file, "r") as f:
+    defines = []
+    with open(f"{ACCELERATOR_DIR}/build/configs/{args.config}/config.sh", "r") as f:
         for line in f:
             if (match := re.match(r"export\s+(\w+)=(.*)", line.strip())) is None:
                 continue
             var, val = match.groups()
-            env_vars[var] = val.strip("'\"")
-            preproc_defines += (
-                f"-D{env_vars[var]} " if var == "DATATYPE" else f"-D{var}={env_vars[var]} "
-            )
+            val = val.strip("'\"")
+            env_vars[var] = val
+            defines.append(f"-D{val}" if var == "DATATYPE" else f"-D{var}={val}")
+    env_vars.setdefault("EXTRA_SIM_CXXFLAGS", " ".join(defines))
 
     # Set the memory banking configuration for the compiler
     # accesses need to be aligned to accelerator's data width
@@ -347,22 +425,21 @@ def main():
         / 8
     )
 
-    # Default to 8MB of scratchpad memory with 8 banks
-    cache_size = env_vars.setdefault("CACHE_SIZE", "8388608")
-    num_banks = env_vars.setdefault("NUM_BANKS", "8")
     env_vars.setdefault("BANK_WIDTH", str(bank_width))
     env_vars.setdefault("EXTRA_COMPILER_FLAGS", f"--bank_width {bank_width}")
     env_vars.setdefault("SOC_SIM", "1")
     env_vars.setdefault("SPDLOG_LEVEL", "DEBUG")
-    env_vars.setdefault("EXTRA_SIM_CXXFLAGS", preproc_defines)
-
-    # Default to use the same scratchpad configuration as the accelerator
-    env_vars.setdefault("SOC_CACHE_SIZE", cache_size)
-    env_vars.setdefault("SOC_NUM_BANKS", num_banks)
 
     # Compile the model(s) and get list of layers
     layers = {}
     layer_counts = {}
+    tile_counts = {}
+    skip_rules = []
+
+    if args.skip_layers:
+        with open(f"{ACCELERATOR_DIR}/ci_skip_rules.json", "r") as f:
+            skip_rules = json.load(f)
+
     if args.tests is None:
         for network in args.models:
             env_vars["NETWORK"] = network
@@ -370,13 +447,29 @@ def main():
                 ["make", "-C", ACCELERATOR_DIR, "network-proto"],
                 env=env_vars,
             )
-            add_layers(network, layers, layer_counts, args.uniquify_layers, env_vars)
+            datatype = env_vars["DATATYPE"]
+            block_size = max(
+                int(env_vars["OC_DIMENSION"]), int(env_vars["IC_DIMENSION"])
+            )
+            skip_layers = get_skip_layers(
+                skip_rules, network, datatype, "rtl", block_size
+            )
+            add_layers(
+                network,
+                layers,
+                layer_counts,
+                tile_counts,
+                args.uniquify_layers,
+                skip_layers,
+                env_vars,
+            )
     else:
         assert (
             len(args.models) == 1
         ), "Only one model can be specified when using --tests"
         layers[args.models[0]] = args.tests.split(",")
         layer_counts[args.models[0]] = {layer: 1 for layer in layers[args.models[0]]}
+        tile_counts[args.models[0]] = {test: 1 for test in layers[args.models[0]]}
 
     config_path = (
         f"{env_vars['DATATYPE']}/"
@@ -430,6 +523,7 @@ def main():
     success = run_rtl_simulations(
         layers,
         layer_counts,
+        tile_counts,
         args.num_processes,
         results_folder,
         env_vars,
