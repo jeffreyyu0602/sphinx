@@ -21,14 +21,11 @@ ACCELERATOR_DIR = os.path.join(VOYAGER_DIR, "accelerator")
 
 
 def utilization(df):
-    max_tiles = int(os.environ.get("MAX_TILES", "1"))
     count = df["Count"].to_numpy()
     full_tiles = df["L2 Tiles"].to_numpy()
+    actual_tiles = df["Actual Tiles"].to_numpy()
     ideal = df["Ideal"].to_numpy()
     runtime = df["Runtime"].to_numpy()
-
-    # Clip tiles to max_tiles
-    actual_tiles = np.minimum(full_tiles, max_tiles)
 
     # Precompute common factor
     weight = (full_tiles * count) / actual_tiles
@@ -41,7 +38,15 @@ def utilization(df):
 
 def print_test_results(test_results, layers, output_folder):
     columns = [
-        "Model", "Layer", "Status", "Runtime", "Ideal", "RuntimeType", "Count", "L2 Tiles"
+        "Model",
+        "Layer",
+        "Status",
+        "Runtime",
+        "Ideal",
+        "RuntimeType",
+        "Count",
+        "L2 Tiles",
+        "Actual Tiles",
     ]
     if len(test_results[0]) == 3:
         columns = columns[:3]
@@ -76,11 +81,7 @@ def print_test_results(test_results, layers, output_folder):
         # if runtime column exists, print runtime of each layer
         if "Runtime" in model_df.columns:
             print("Runtime:")
-            print(
-                model_df[["Layer", "Runtime", "Ideal", "RuntimeType", "Count", "L2 Tiles"]]
-                .to_string(index=False),
-                flush=True,
-            )
+            print(model_df[columns[1:]].to_string(index=False), flush=True)
 
             utilization_all    = utilization(model_df)
             utilization_matrix = utilization(model_df[model_df["RuntimeType"] == "matrix"])
@@ -126,7 +127,7 @@ def run_rtl_simulation(
                 "+max-cycles=10000000",
                 "+ntb_random_seed_automatic",
                 "+verbose",
-                f"+fsdbfile={output_folder}/{model}_{layer}.fsdb" if debug else "",
+                f"+fsdbfile=dump.fsdb" if debug else "",
                 "+permissive-off",
                 f"../../tests/voyager/networks/{model}/{config_path}/{layer}.riscv",
             ],
@@ -176,7 +177,21 @@ def run_rtl_simulation(
             if runtime_match:
                 runtime = int(runtime_match.group(1))
 
-    return (model, layer, success, runtime, ideal, runtime_type, layer_count, tile_count)
+    # Calculate actual tiles (min of L2 tiles and max_tiles)
+    max_tiles = int(os.environ.get("MAX_TILES", "1"))
+    actual_tiles = min(tile_count, max_tiles)
+
+    return (
+        model,
+        layer,
+        success,
+        runtime,
+        ideal,
+        runtime_type,
+        layer_count,
+        tile_count,
+        actual_tiles,
+    )
 
 
 def run_rtl_simulations(
@@ -310,6 +325,9 @@ def matches(value, rule_value):
 
 
 def get_skip_layers(skip_rules, model, datatype, sim_type, block_size):
+    best_rule = None
+    best_specificity = -1
+
     for rule in skip_rules:
         if (
             matches(model, rule["model"])
@@ -317,8 +335,19 @@ def get_skip_layers(skip_rules, model, datatype, sim_type, block_size):
             and matches(sim_type, rule["sim_type"])
             and matches(block_size, rule["block_size"])
         ):
-            return set(rule["layers"])
-    return set()
+            # Calculate specificity score (higher is more specific)
+            # Exact match = 2, list match = 1, wildcard = 0
+            specificity = 0
+            specificity += 2 if rule["datatype"] != "*" else 0
+            specificity += 1 if isinstance(rule["model"], list) else (2 if rule["model"] != "*" else 0)
+            specificity += 1 if isinstance(rule["sim_type"], list) else (2 if rule["sim_type"] != "*" else 0)
+            specificity += 2 if rule["block_size"] != "*" else 0
+
+            if specificity > best_specificity:
+                best_specificity = specificity
+                best_rule = rule
+
+    return set(best_rule["layers"]) if best_rule else set()
 
 
 def main():
