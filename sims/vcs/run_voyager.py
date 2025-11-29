@@ -403,12 +403,12 @@ def main():
     env_vars["NETWORK"] = args.models[0]
 
     # Default to 8MB of scratchpad memory with 8 banks
-    cache_size = env_vars.setdefault("CACHE_SIZE", "8388608")
-    num_banks = env_vars.setdefault("NUM_BANKS", "8")
+    cache_size = int(env_vars.setdefault("CACHE_SIZE", "8388608"))
+    num_banks = int(env_vars.setdefault("NUM_BANKS", "8"))
 
     # Default to use the same scratchpad configuration as the accelerator
-    env_vars.setdefault("SOC_CACHE_SIZE", cache_size)
-    env_vars.setdefault("SOC_NUM_BANKS", num_banks)
+    env_vars.setdefault("SOC_CACHE_SIZE", str(2 * cache_size))
+    env_vars.setdefault("SOC_NUM_BANKS", str(2 * num_banks))
 
     # Generate SoC verilog
     print("Generating verilog...")
