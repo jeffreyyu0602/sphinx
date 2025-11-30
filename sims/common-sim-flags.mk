@@ -22,7 +22,6 @@ SIM_CXXFLAGS = \
 	-I$(base_dir)/generators/voyager/accelerator/lib/spdlog/include \
 	-I/cad/mentor/2024.2_1/Mgc_home/shared/include \
 	-I$(CONDA_PREFIX)/include \
-	-DNO_SYSC \
 	$(EXTRA_SIM_CXXFLAGS)
 
 SIM_LDFLAGS = \
@@ -31,9 +30,11 @@ SIM_LDFLAGS = \
 	-Wl,-rpath,$(RISCV)/lib \
 	-L$(sim_dir) \
 	-L$(dramsim_dir) \
+	-L$(CATAPULT_ROOT)/shared/lib \
 	$(LRISCV) \
 	-lfesvr \
 	-ldramsim \
+	-lsystemc \
 	-lstdc++fs \
 	-labsl_hash \
 	-labsl_log_internal_message \
