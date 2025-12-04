@@ -17,14 +17,17 @@ abstract class TSMC7IOCell extends BlackBox with HasBlackBoxResource with HasBla
 
 class TSMC7DigitalGPIOCellBundle extends DigitalGPIOCellBundle {
   val ds = Input(UInt(4.W))
+  val rte = Input(Bool())
 }
 
 class TSMC7DigitalInIOCellBundle extends DigitalInIOCellBundle{
   val ds = Input(UInt(4.W))
+  val rte = Input(Bool())
 }
 
 class TSMC7DigitalOutIOCellBundle extends DigitalOutIOCellBundle {
   val ds = Input(UInt(4.W))
+  val rte = Input(Bool())
 }
 
 class TSMC7AnalogIOCell extends TSMC7IOCell with AnalogIOCell {

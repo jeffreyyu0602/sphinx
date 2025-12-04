@@ -20,35 +20,36 @@ class TSMC7ChipTop(implicit p: Parameters) extends ChipTop {
   // InModuleBody blocks are executed within the LazyModuleImp of this block
   InModuleBody {
     lazySystem match { case lsys: DigitalTop =>
+      val driverIO = lsys.gpioDriverIO.getOrElse {
+        require(false, "TSMC7 IO cells require the GPIO Driver to be enabled in Config!")
+        throw new Exception("Missing GPIO Driver") // Stop compiler here
+      }
+
       iocellMap.foreach { case (interface, cells) => {
-        val ds: Data = lsys.ioDriveStrength match {
-          case Some(d) => d
-          case None => {
-            require(false, "TSMC7 IO cells require drive strength")
-            false.B
-          }
-        }
         cells.foreach { _ match {
-          case c: TSMC7AnalogIOCell => {
-            // do nothing
-          }
           case c: TSMC7DigitalGPIOCellH => {
-            c.io.ds := ds
+            c.io.ds  := driverIO.ds
+            c.io.rte := driverIO.rte
           }
           case c: TSMC7DigitalInIOCellH => {
-            c.io.ds := ds
+            c.io.ds  := driverIO.ds
+            c.io.rte := driverIO.rte
           }
           case c: TSMC7DigitalOutIOCellH => {
-            c.io.ds := ds
+            c.io.ds  := driverIO.ds
+            c.io.rte := driverIO.rte
           }
           case c: TSMC7DigitalGPIOCellV => {
-            c.io.ds := ds
+            c.io.ds  := driverIO.ds
+            c.io.rte := driverIO.rte
           }
           case c: TSMC7DigitalInIOCellV => {
-            c.io.ds := ds
+            c.io.ds  := driverIO.ds
+            c.io.rte := driverIO.rte
           }
           case c: TSMC7DigitalOutIOCellV => {
-            c.io.ds := ds
+            c.io.ds  := driverIO.ds
+            c.io.rte := driverIO.rte
           }
           case c => {
             require(false, s"Unsupported iocell type ${c.getClass}")

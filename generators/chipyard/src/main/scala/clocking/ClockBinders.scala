@@ -119,8 +119,8 @@ class WithSingleClockBroadcastClockGenerator(freqMHz: Int = 100) extends Overrid
 
       clockGroupsSourceNode.out.foreach { case (bundle, edge) =>
         bundle.member.data.foreach { b =>
-          b.clock := clock_io
-          b.reset := reset_io
+          b.clock := clock_wire
+          b.reset := reset_wire
         }
       }
       (Seq(ClockPort(() => clock_io, freqMHz), ResetPort(() => reset_io)), clockIOCell ++ resetIOCell)

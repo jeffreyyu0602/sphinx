@@ -8,7 +8,8 @@ module TSMC7DigitalGPIOCellH(
     input ie,
     input o,
     input oe,
-    input [3:0] ds
+    input [3:0] ds,
+    input rte
 );
 
     PDDWUWSWEWCDGS_H iocell(
@@ -24,7 +25,7 @@ module TSMC7DigitalGPIOCellH(
         .PU(1'b0),
         .PD(1'b1),
         .ST(1'b0),
-        .RTE(1'b0)
+        .RTE(rte)
     );
 
 endmodule
@@ -35,7 +36,8 @@ module TSMC7DigitalGPIOCellV(
     input ie,
     input o,
     input oe,
-    input [3:0] ds
+    input [3:0] ds,
+    input rte
 );
 
     PDDWUWSWEWCDGS_V iocell(
@@ -51,7 +53,7 @@ module TSMC7DigitalGPIOCellV(
         .PU(1'b0),
         .PD(1'b1),
         .ST(1'b0),
-        .RTE(1'b0)
+        .RTE(rte)
     );
 
 endmodule
@@ -60,7 +62,8 @@ module TSMC7DigitalInIOCellH(
     input pad,
     output i,
     input ie,
-    input [3:0] ds
+    input [3:0] ds,
+    input rte
 );
 
     PDDWUWSWEWCDGS_H iocell(
@@ -76,7 +79,7 @@ module TSMC7DigitalInIOCellH(
         .PU(1'b0),
         .PD(1'b1),
         .ST(1'b0),
-        .RTE(1'b0)
+        .RTE(rte)
     );
 
 endmodule
@@ -85,7 +88,8 @@ module TSMC7DigitalInIOCellV(
     input pad,
     output i,
     input ie,
-    input [3:0] ds
+    input [3:0] ds,
+    input rte
 );
 
     PDDWUWSWEWCDGS_V iocell(
@@ -101,7 +105,7 @@ module TSMC7DigitalInIOCellV(
         .PU(1'b0),
         .PD(1'b1),
         .ST(1'b0),
-        .RTE(1'b0)
+        .RTE(rte)
     );
 
 endmodule
@@ -110,7 +114,8 @@ module TSMC7DigitalOutIOCellH(
     output pad,
     input o,
     input oe,
-    input [3:0] ds
+    input [3:0] ds,
+    input rte
 );
 
     PDDWUWSWEWCDGS_H iocell(
@@ -125,7 +130,7 @@ module TSMC7DigitalOutIOCellH(
         .PU(1'b0),
         .PD(1'b1),
         .ST(1'b0),
-        .RTE(1'b0)
+        .RTE(rte)
     );
 
 endmodule
@@ -134,7 +139,8 @@ module TSMC7DigitalOutIOCellV(
     output pad,
     input o,
     input oe,
-    input [3:0] ds
+    input [3:0] ds,
+    input rte
 );
 
     PDDWUWSWEWCDGS_V iocell(
@@ -149,7 +155,7 @@ module TSMC7DigitalOutIOCellV(
         .PU(1'b0),
         .PD(1'b1),
         .ST(1'b0),
-        .RTE(1'b0)
+        .RTE(rte)
     );
 
 endmodule

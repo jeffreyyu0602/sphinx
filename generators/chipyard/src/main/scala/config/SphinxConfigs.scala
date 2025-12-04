@@ -15,28 +15,20 @@ class WithBootROM
         )
     })
 
-case class WithDigitalTopName(name: String) extends Config((site, here, up) => { case DigitalTopName => name })
-
 class SphinxConfig
     extends Config(
       new WithBootROM ++
         new chipyard.sphinx.WithTSMC7IOCells ++
         new chipyard.sphinx.WithTSMC7ChipTop ++
         new chipyard.sphinx.WithGPIODriver ++
-        // new chipyard.harness.WithSphinxSelected ++
-        // new chipyard.harness.WithD2TiedOff ++
-        // new WithDigitalTopName("SphinxTop") ++
-        // new hyperram.WithHyperRAM ++
-        // new chipyard.harness.WithSimHyperRAM ++
-        // new chipyard.iobinders.WithHyperRAMIOCells ++
         new freechips.rocketchip.subsystem.WithoutTLMonitors ++
         new testchipip.soc.WithSbusScratchpad(
           base     = 0x40000000L,
-          size     = 768 * 1024,
-          banks    = 6,
+          size     = (2.5 * 1024 * 1024).toLong,
+          banks    = 20,
           subBanks = 1,
         ) ++
-        new voyager.WithVoyager("MXNF4", 64, 64, 256, 256, 256, 1.0, "tsmc7", "E5M3", true, true) ++
+        new voyager.WithVoyager("MXNF4", 64, 64, 256, 576, 256, 1.0, "tsmc7", "E5M3", true, true) ++
         new chipyard.harness.WithVoyagerVerification ++
         new chipyard.config.WithSystemBusWidth(256) ++
         new voyager.WithMaxBurstSize(128) ++

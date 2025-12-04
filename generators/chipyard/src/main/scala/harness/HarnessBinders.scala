@@ -423,5 +423,8 @@ class WithVoyagerVerification
       case (th: HasHarnessInstantiators, port: ClockTapPort, chipId: Int) => {
         val verification = Module(new VoyagerVerification)
         verification.io.clock := th.harnessBinderClock
+
+        val success = SimVPI.connect(th.harnessBinderClock, th.harnessBinderReset, 0)
+        when(success) { th.success := true.B }
       }
     })

@@ -17,6 +17,15 @@ case class GPIODriverConfig(
 
 case object GPIODriverKey extends Field[Option[GPIODriverConfig]](None)
 
+class GPIODriverTopIO extends Bundle {
+  val ds = Output(UInt(4.W))
+  val rte = Output(Bool())
+}
+
+trait HasGPIODriverTopIO {
+  def io: GPIODriverTopIO
+}
+
 class TLGPIODriver(address: BigInt, pbusBeatBytes: Int)(implicit p: Parameters) extends LazyModule {
   val device = new SimpleDevice("gpio-driver", Seq("stanford,gpio-driver"))
 
@@ -26,55 +35,62 @@ class TLGPIODriver(address: BigInt, pbusBeatBytes: Int)(implicit p: Parameters) 
     beatBytes = pbusBeatBytes,
     concurrency = 1)
 
-  lazy val module = new GPIODriverModuleImp(this)
-}
+  lazy val module = new LazyModuleImp(this) with HasGPIODriverTopIO {
+    // Register definitions
+    val ds = RegInit(0.U(4.W))
+    val rte = RegInit(false.B)
 
-class GPIODriverTopIO extends Bundle {
-  val ds = Output(UInt(4.W))
-}
+    // IO Definition
+    val io = IO(new GPIODriverTopIO)
+    io.ds := ds
+    io.rte := rte
 
-trait HasGPIODriverTopIO {
-  def io: GPIODriverTopIO
-}
-
-class GPIODriverModuleImp(outer: TLGPIODriver) extends LazyModuleImp(outer) with HasGPIODriverTopIO {
-  val config = p(GPIODriverKey).get
-
-  val ds = Reg(UInt(4.W))
-  val io = IO(new GPIODriverTopIO)
-  io.ds := ds
-
-  outer.node.regmap(
-    0x00 -> Seq(RegField(4, ds)),
-  )
+    // Register Mapping
+    node.regmap(
+      0x00 -> Seq(RegField(4, ds)),
+      0x04 -> Seq(RegField(1, rte)),
+    )
+  }
 }
 
 trait CanHavePeripheryGPIODriver { this: BaseSubsystem =>
-  val ioDriveStrength = p(GPIODriverKey) match {
+  val gpioDriverIO = p(GPIODriverKey) match {
     case Some(params) => {
       val pbus = locateTLBusWrapper(PBUS)
 
-      val gpioDriver = pbus {
-        LazyModule(new TLGPIODriver(A.MMIOGPIODRIVER, pbus.beatBytes)(p))
+      // STEP 1: The "Inner" Logic (Inside PBUS)
+      // We use pbus { ... } to ensure the driver gets the PBUS Clock/Reset.
+      val innerIO = pbus {
+        val gpioDriver = LazyModule(new TLGPIODriver(params.mmioAddress, pbus.beatBytes)(p))
+
+        pbus.coupleTo("gpio-driver") {
+          gpioDriver.node := TLFragmenter(pbus.beatBytes, pbus.blockBytes) := _
+        }
+
+        // Create an IO on the PBUS module boundary to expose the signals
+        val wiring = InModuleBody {
+          val io = IO(Output(new GPIODriverTopIO))
+          io.ds  := gpioDriver.module.io.ds
+          io.rte := gpioDriver.module.io.rte
+          io
+        }
+
+        // Return this "middle-man" IO so DigitalTop can see it
+        wiring
       }
 
-      pbus.coupleTo("gpio-driver") {
-        gpioDriver.node := TLFragmenter(pbus.beatBytes, pbus.blockBytes) := _
+      // STEP 2: The "Outer" Logic (Inside DigitalTop)
+      // Now we connect the PBUS output to the actual Chip Pins
+      val topIO = InModuleBody {
+        val io = IO(Output(new GPIODriverTopIO)).suggestName("gpio_driver")
+
+        // Connect DigitalTop IO <--- PBUS IO
+        io.ds  := innerIO.ds
+        io.rte := innerIO.rte
+        io
       }
 
-      val pbusIO = pbus { InModuleBody {
-        val ds = IO(Output(UInt(4.W)))
-        ds := gpioDriver.module.io.ds
-        ds
-      }}
-
-      val dsIO = InModuleBody {
-        val ds = IO(Output(UInt(4.W))).suggestName("ioDriveStrength")
-        ds := pbusIO
-        ds
-      }
-
-      Some(dsIO)
+      Some(topIO)
     }
     case None => None
   }
