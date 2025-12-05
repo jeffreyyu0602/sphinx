@@ -19,7 +19,6 @@ case object GPIODriverKey extends Field[Option[GPIODriverConfig]](None)
 
 class GPIODriverTopIO extends Bundle {
   val ds = Output(UInt(4.W))
-  val rte = Output(Bool())
 }
 
 trait HasGPIODriverTopIO {
@@ -38,17 +37,14 @@ class TLGPIODriver(address: BigInt, pbusBeatBytes: Int)(implicit p: Parameters) 
   lazy val module = new LazyModuleImp(this) with HasGPIODriverTopIO {
     // Register definitions
     val ds = RegInit(0.U(4.W))
-    val rte = RegInit(false.B)
 
     // IO Definition
     val io = IO(new GPIODriverTopIO)
     io.ds := ds
-    io.rte := rte
 
     // Register Mapping
     node.regmap(
       0x00 -> Seq(RegField(4, ds)),
-      0x04 -> Seq(RegField(1, rte)),
     )
   }
 }
@@ -71,7 +67,6 @@ trait CanHavePeripheryGPIODriver { this: BaseSubsystem =>
         val wiring = InModuleBody {
           val io = IO(Output(new GPIODriverTopIO))
           io.ds  := gpioDriver.module.io.ds
-          io.rte := gpioDriver.module.io.rte
           io
         }
 
@@ -86,7 +81,6 @@ trait CanHavePeripheryGPIODriver { this: BaseSubsystem =>
 
         // Connect DigitalTop IO <--- PBUS IO
         io.ds  := innerIO.ds
-        io.rte := innerIO.rte
         io
       }
 
