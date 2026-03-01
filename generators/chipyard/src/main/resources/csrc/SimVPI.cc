@@ -7,14 +7,21 @@
 
 #include "testchip_tsi.h"
 
+static uint64_t vpi_time_now() {
+  s_vpi_time t;
+  t.type = vpiSimTime;
+  vpi_get_time(nullptr, &t);
+  return (uint64_t(t.high) << 32) | uint64_t(t.low);
+}
+
 class testchip_vpi_tsi_t : public testchip_tsi_t {
  public:
-  static const int NUM_BANKS = 6;
+  static const int NUM_BANKS = 20;
   static const int NUM_SUBBANKS = 1;
   static const int BANK_WIDTH = 32;
   static const int MACRO_WIDTH = 16;
 
-  static const uint64_t CACHE_SIZE = 0.75 * 1024 * 1024;
+  static const uint64_t CACHE_SIZE = 2.5 * 1024 * 1024;
   static const uint64_t BASE_ADDR = 0x40000000;
   static const uint64_t END_ADDR = BASE_ADDR + CACHE_SIZE - 1;
 
@@ -121,7 +128,11 @@ void testchip_vpi_tsi_t::write_chunk(addr_t taddr, size_t nbytes,
     s_vpi_value val;
     val.format = vpiIntVal;
     val.value.integer = src_data[0] ? 1 : 0;
+
+    std::cerr << "[TB t=" << vpi_time_now() << "] Setting MSIP to "
+              << static_cast<int>(src_data[0]) << "\n";
     vpi_put_value(h_msip, &val, NULL, vpiNoDelay);
+    std::cerr << "[TB t=" << vpi_time_now() << "] Done setting MSIP\n";
 
     return;
   }

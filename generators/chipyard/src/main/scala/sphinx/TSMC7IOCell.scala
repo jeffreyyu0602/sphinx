@@ -43,26 +43,16 @@ class TSMC7DigitalOutIOCellBundle extends DigitalOutIOCellBundle {
 class TSMC7AnalogIOCell extends TSMC7IOCell with AnalogIOCell {
   val io = IO(new AnalogIOCellBundle)
 }
+
+// -------------------------------
+// Digital GPIO Cells
+// -------------------------------
 class TSMC7DigitalGPIOCellH(val nameOpt: Option[String])
     extends TSMC7IOCell
     with DigitalGPIOCell
     with HasCellNameAndRTE {
   val cellName = nameOpt
   val io       = IO(new TSMC7DigitalGPIOCellBundle)
-}
-class TSMC7DigitalInIOCellH(val nameOpt: Option[String])
-    extends TSMC7IOCell
-    with DigitalInIOCell
-    with HasCellNameAndRTE {
-  val cellName = nameOpt
-  val io       = IO(new TSMC7DigitalInIOCellBundle)
-}
-class TSMC7DigitalOutIOCellH(val nameOpt: Option[String])
-    extends TSMC7IOCell
-    with DigitalOutIOCell
-    with HasCellNameAndRTE {
-  val cellName = nameOpt
-  val io       = IO(new TSMC7DigitalOutIOCellBundle)
 }
 
 class TSMC7DigitalGPIOCellV(val nameOpt: Option[String])
@@ -72,6 +62,18 @@ class TSMC7DigitalGPIOCellV(val nameOpt: Option[String])
   val cellName = nameOpt
   val io       = IO(new TSMC7DigitalGPIOCellBundle)
 }
+
+// -------------------------------
+// Digital Input Cells
+// -------------------------------
+class TSMC7DigitalInIOCellH(val nameOpt: Option[String])
+    extends TSMC7IOCell
+    with DigitalInIOCell
+    with HasCellNameAndRTE {
+  val cellName = nameOpt
+  val io       = IO(new TSMC7DigitalInIOCellBundle)
+}
+
 class TSMC7DigitalInIOCellV(val nameOpt: Option[String])
     extends TSMC7IOCell
     with DigitalInIOCell
@@ -79,6 +81,18 @@ class TSMC7DigitalInIOCellV(val nameOpt: Option[String])
   val cellName = nameOpt
   val io       = IO(new TSMC7DigitalInIOCellBundle)
 }
+
+// -------------------------------
+// Digital Output Cells
+// -------------------------------
+class TSMC7DigitalOutIOCellH(val nameOpt: Option[String])
+    extends TSMC7IOCell
+    with DigitalOutIOCell
+    with HasCellNameAndRTE {
+  val cellName = nameOpt
+  val io       = IO(new TSMC7DigitalOutIOCellBundle)
+}
+
 class TSMC7DigitalOutIOCellV(val nameOpt: Option[String])
     extends TSMC7IOCell
     with DigitalOutIOCell
@@ -132,4 +146,16 @@ case class TSMC7IOCellParams() extends IOCellTypeParams {
       case _          => Module(new TSMC7DigitalOutIOCellH(nameOpt))
     }
   }
+}
+
+class TSMC7POCMCellV extends TSMC7IOCell {
+  val io = IO(new Bundle {
+    val rte = Input(Bool())
+  })
+}
+
+class TSMC7POCMCellH extends TSMC7IOCell {
+  val io = IO(new Bundle {
+    val rte = Input(Bool())
+  })
 }

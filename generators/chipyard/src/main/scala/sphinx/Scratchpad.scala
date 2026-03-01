@@ -12,18 +12,37 @@ import scala.collection.immutable.{ListMap}
 import testchipip.soc.{BankedScratchpadKey}
 
 
-class ScratchpadBank(subBanks: Int, address: AddressSet, beatBytes: Int, devOverride: MemoryDevice, buffer: BufferParams)(implicit p: Parameters) extends ClockSinkDomain(ClockSinkParameters())(p) {
+case object MaxBurstSize extends Field[Int]
+
+class WithMaxBurstSize(numBytes: Int) extends Config((site, here, up) => {
+  case MaxBurstSize => numBytes
+})
+
+class WithDefaultMaxBurstSize extends Config((site, here, up) => {
+  case MaxBurstSize => up(CacheBlockBytes)
+})
+
+class ScratchpadBank(
+  subBanks: Int,
+  address: AddressSet,
+  beatBytes: Int,
+  devOverride: MemoryDevice,
+  buffer: BufferParams,
+  atomics: Boolean = false
+)(implicit p: Parameters) extends ClockSinkDomain(ClockSinkParameters())(p) {
   val xbar = TLXbar()
   val subBankSize = (address.mask + 1) / subBanks
+  println(s"[ScratchpadBank] MaxBurstSize = ${p(MaxBurstSize)}")
   (0 until subBanks).map { sb =>
     val ram = LazyModule(new TLRAM(
       address = AddressSet(address.base + sb * subBankSize, subBankSize - 1),
-      atomics = true,
+      atomics = atomics,
+      sramReg = true,
       beatBytes = beatBytes,
       devOverride = Some(devOverride)) {
       override lazy val desiredName = s"TLRAM_ScratchpadBank"
     })
-    ram.node := TLFragmenter(beatBytes, 128, nameSuffix = Some("ScratchpadBank")) := TLBuffer(buffer) := xbar
+    ram.node := TLFragmenter(beatBytes, p(MaxBurstSize), nameSuffix = Some("ScratchpadBank")) := TLBuffer(buffer) := xbar
   }
   override lazy val desiredName = "ScratchpadBank"
 }
@@ -49,12 +68,16 @@ trait CanHaveBankedScratchpad { this: BaseSubsystem =>
     }
 
     def genBanks()(implicit p: Parameters) = (0 until banks).map { b =>
+      // First 4 banks are for CPU instructions
+      val isAtomic = (b < 4)
       val bank = LazyModule(new ScratchpadBank(
         params.subBanks,
         AddressSet(params.base + bankSize * b, bankSize - 1),
         bus.beatBytes,
         device,
-        params.buffer))
+        params.buffer,
+        atomics = isAtomic
+      ))
       bank.clockNode := bus.fixedClockNode
       bus.coupleTo(s"$name-$si-$b") { bank.xbar := bus { TLBuffer(params.outerBuffer) } := _ }
     }

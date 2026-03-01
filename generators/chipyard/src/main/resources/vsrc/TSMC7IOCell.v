@@ -159,3 +159,23 @@ module TSMC7DigitalOutIOCellV(
     );
 
 endmodule
+
+module TSMC7POCMCellV(
+    input rte
+);
+
+    PVDD2POCM_V pocmcell(
+        .RTE(rte)
+    );
+
+endmodule
+
+module TSMC7POCMCellH(
+    input rte
+);
+
+    PVDD2POCM_H pocmcell(
+        .RTE(rte)
+    );
+
+endmodule

@@ -36,7 +36,21 @@ class TSMC7ChipTop(
           noPrefix {
             val rteCell = Module(new PRTEDISABLE)
             rteCell.suggestName(s"iocell_dmn${idx}_rte")
-            side -> rteCell.io.RTE
+
+            val rteSignal = side match {
+              case "NORTH" | "SOUTH" =>
+                val hCell = Module(new TSMC7POCMCellH)
+                hCell.suggestName(s"iocell_dmn${idx}_pocm")
+                hCell.io.rte := rteCell.io.RTE
+                rteCell.io.RTE
+              case "EAST" | "WEST"   =>
+                val vCell = Module(new TSMC7POCMCellV)
+                vCell.suggestName(s"iocell_dmn${idx}_pocm")
+                vCell.io.rte := rteCell.io.RTE
+                rteCell.io.RTE
+            }
+
+            side -> rteSignal
           }
         }.toMap
 
