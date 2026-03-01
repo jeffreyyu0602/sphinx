@@ -12,7 +12,7 @@ import re
 from deepdiff import DeepDiff
 from google.protobuf import text_format
 from google.protobuf.json_format import MessageToDict
-from quantized_training.codegen import param_pb2
+from voyager_compiler.codegen import param_pb2
 
 VOYAGER_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "../../generators/voyager")
@@ -150,7 +150,7 @@ def run_rtl_simulation(
 
         # 1. Check if test passed
         success = bool(re.search(r"Error\s+count:\s+0", content))
-        
+
         if success:
             # 2. Capture runtime type (Matrix or Vector) and ideal runtime
             match = re.search(
@@ -246,7 +246,7 @@ def add_layers(network, layers, layer_counts, tile_counts, uniquify, skip_layers
             # Filter out layers that should be skipped
             layers[network] = [
                 layer for layer in all_layers
-                if not any(p.match(layer) for p in skip_layers)
+                if not any(p.fullmatch(layer) for p in skip_layers)
             ]
             layer_counts[network] = {layer: 1 for layer in layers[network]}
     else:
@@ -282,7 +282,7 @@ def add_layers(network, layers, layer_counts, tile_counts, uniquify, skip_layers
             name = op["op"]["name"] if "op" in op else op["fused_op"]["name"]
 
             # Skip layers that are in the skip list
-            if any(p.match(name) for p in skip_layers):
+            if any(p.fullmatch(name) for p in skip_layers):
                 continue
 
             # remove the name, memory, and node fields from the op
@@ -351,40 +351,40 @@ def get_skip_layers(skip_rules, model, datatype, sim_type, block_size):
 
 
 def main():
-    argparser = argparse.ArgumentParser(description="Run Voyager simulations")
-    argparser.add_argument(
+    parser = argparse.ArgumentParser(description="Run Voyager simulations")
+    parser.add_argument(
         "--models",
         required=True,
         help="Model(s) to test for regression (resnet18, mobilebert)",
     )
-    argparser.add_argument(
+    parser.add_argument(
         "--tests",
         default=None,
         help="Comma separated list of tests to run (e.g. test1,test2)",
     )
-    argparser.add_argument(
+    parser.add_argument(
         "--num_processes",
         type=int,
         required=True,
         help="Number of processes to run in parallel",
     )
-    argparser.add_argument(
+    parser.add_argument(
         "--debug",
         action="store_true",
         help="Run the simulation in debug mode to generate waveforms",
     )
-    argparser.add_argument("--config", required=True, help="SoC config name")
-    argparser.add_argument(
+    parser.add_argument("--config", required=True, help="SoC config name")
+    parser.add_argument(
         "--uniquify_layers",
         action="store_true",
         help="Whether to remove duplicated layers in the model",
     )
-    argparser.add_argument(
+    parser.add_argument(
         "--skip_layers",
         action="store_true",
         help="Whether to skip layers specified in the skip_rules.json",
     )
-    args = argparser.parse_args()
+    args = parser.parse_args()
     args.models = [s.strip() for s in args.models.split(",")]
 
     # Create directory with current time
@@ -421,7 +421,7 @@ def main():
         )
 
     # Set the environment variables from the sh file
-    defines = []
+    sim_cxxflags = []
     with open(f"{ACCELERATOR_DIR}/build/configs/{args.config}/config.sh", "r") as f:
         for line in f:
             if (match := re.match(r"export\s+(\w+)=(.*)", line.strip())) is None:
@@ -429,8 +429,16 @@ def main():
             var, val = match.groups()
             val = val.strip("'\"")
             env_vars[var] = val
-            defines.append(f"-D{val}" if var == "DATATYPE" else f"-D{var}={val}")
-    env_vars.setdefault("EXTRA_SIM_CXXFLAGS", " ".join(defines))
+            sim_cxxflags.append(f"-D{val}" if var == "DATATYPE" else f"-D{var}={val}")
+    env_vars.setdefault("EXTRA_SIM_CXXFLAGS", " ".join(sim_cxxflags))
+
+    # We need to pass these preprocessor defines to the simulator during compilation
+    preproc_defines = []
+    if env_vars.get("SUPPORT_MVM") == "true":
+        preproc_defines.append("+define+SUPPORT_MVM")
+    if env_vars.get("SUPPORT_SPMM") == "true":
+        preproc_defines.append("+define+SUPPORT_SPMM")
+    env_vars["EXTRA_SIM_SOURCES"] = " ".join(preproc_defines)
 
     # Set the memory banking configuration for the compiler
     # accesses need to be aligned to accelerator's data width
