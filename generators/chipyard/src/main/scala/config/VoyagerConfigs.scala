@@ -41,7 +41,7 @@ class MXINT8x16x16
 
 class MXNF4x64x64
     extends Config(
-      new voyager.WithVoyager("MXNF4", 64, 64, 1024, 1024, 1024, 5.0, "generic", "E5M3", true, true) ++
+      new voyager.WithVoyager("MXNF4", 64, 64, 1024, 1024, 1024, 5.0, "generic", "E5M3", true, true, true) ++
         new chipyard.harness.WithVoyagerVerification ++
         new freechips.rocketchip.subsystem.WithoutTLMonitors ++
         new chipyard.config.WithSystemBusWidth(256) ++
