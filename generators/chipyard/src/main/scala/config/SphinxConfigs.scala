@@ -24,8 +24,8 @@ class SphinxConfig
         new freechips.rocketchip.subsystem.WithoutTLMonitors ++
         new testchipip.soc.WithSbusScratchpad(
           base     = 0x40000000L,
-          size     = (2.5 * 1024 * 1024).toLong,
-          banks    = 20,
+          size     = (2 * 1024 * 1024).toLong,
+          banks    = 16,
           subBanks = 1,
         ) ++
         new voyager.WithVoyager("MXNF4", 64, 64, 512, 576, 256, 0.9, "tsmc7", "E5M3", true, true, true) ++

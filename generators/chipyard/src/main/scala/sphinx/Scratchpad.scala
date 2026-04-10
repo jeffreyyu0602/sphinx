@@ -34,7 +34,7 @@ class ScratchpadBank(
   val subBankSize = (address.mask + 1) / subBanks
   println(s"[ScratchpadBank] MaxBurstSize = ${p(MaxBurstSize)}")
   (0 until subBanks).map { sb =>
-    val ram = LazyModule(new TLRAM(
+    val ram = LazyModule(new chipyard.sphinx.TLRAM(
       address = AddressSet(address.base + sb * subBankSize, subBankSize - 1),
       atomics = atomics,
       sramReg = true,

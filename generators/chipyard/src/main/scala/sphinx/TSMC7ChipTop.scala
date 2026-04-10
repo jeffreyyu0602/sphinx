@@ -33,38 +33,37 @@ class TSMC7ChipTop(
         val sides = Seq("WEST", "NORTH", "EAST", "SOUTH")
 
         val domainRteMap = sides.zipWithIndex.map { case (side, idx) =>
-          noPrefix {
+          val rteSignal = noPrefix {
             val rteCell = Module(new PRTEDISABLE)
             rteCell.suggestName(s"iocell_dmn${idx}_rte")
 
-            val rteSignal = side match {
+            side match {
               case "NORTH" | "SOUTH" =>
-                val hCell = Module(new TSMC7POCMCellH)
+                val hCell = Module(new TSMC7POCMCellV)
                 hCell.suggestName(s"iocell_dmn${idx}_pocm")
                 hCell.io.rte := rteCell.io.RTE
-                rteCell.io.RTE
               case "EAST" | "WEST"   =>
-                val vCell = Module(new TSMC7POCMCellV)
+                val vCell = Module(new TSMC7POCMCellH)
                 vCell.suggestName(s"iocell_dmn${idx}_pocm")
                 vCell.io.rte := rteCell.io.RTE
-                rteCell.io.RTE
             }
 
-            side -> rteSignal
+            rteCell.io.RTE
           }
+          side -> rteSignal
         }.toMap
 
         // -------------------------------
         // Name → Side mapping
         // -------------------------------
         val nameToSide: Map[String, String] = Map(
-          "iocell_jtag_TDO"  -> "NORTH",
-          "iocell_jtag_TDI"  -> "NORTH",
-          "iocell_jtag_TMS"  -> "NORTH",
-          "iocell_jtag_TCK"  -> "NORTH",
-          "iocell_clock"     -> "SOUTH",
-          "iocell_reset"     -> "SOUTH",
-          "iocell_clock_tap" -> "SOUTH",
+          "iocell_jtag_TDO"  -> "WEST",
+          "iocell_jtag_TDI"  -> "WEST",
+          "iocell_jtag_TMS"  -> "WEST",
+          "iocell_jtag_TCK"  -> "WEST",
+          "iocell_clock"     -> "EAST",
+          "iocell_reset"     -> "EAST",
+          "iocell_clock_tap" -> "EAST",
         )
 
         iocellMap.foreach {

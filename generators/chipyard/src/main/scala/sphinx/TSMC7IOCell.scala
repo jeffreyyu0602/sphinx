@@ -103,13 +103,13 @@ class TSMC7DigitalOutIOCellV(val nameOpt: Option[String])
 
 case class TSMC7IOCellParams() extends IOCellTypeParams {
   val ioDirectionMap: Map[String, String] = Map(
-    "iocell_jtag_TDO"  -> "Vertical",
-    "iocell_jtag_TDI"  -> "Vertical",
-    "iocell_jtag_TMS"  -> "Vertical",
-    "iocell_jtag_TCK"  -> "Vertical",
-    "iocell_clock"     -> "Vertical",
-    "iocell_reset"     -> "Vertical",
-    "iocell_clock_tap" -> "Vertical",
+    "iocell_jtag_TDO"  -> "Horizontal",
+    "iocell_jtag_TDI"  -> "Horizontal",
+    "iocell_jtag_TMS"  -> "Horizontal",
+    "iocell_jtag_TCK"  -> "Horizontal",
+    "iocell_clock"     -> "Horizontal",
+    "iocell_reset"     -> "Horizontal",
+    "iocell_clock_tap" -> "Horizontal",
   )
 
   def analog() = Module(new TSMC7AnalogIOCell)
