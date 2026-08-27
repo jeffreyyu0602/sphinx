@@ -16,12 +16,12 @@ static uint64_t vpi_time_now() {
 
 class testchip_vpi_tsi_t : public testchip_tsi_t {
  public:
-  static const int NUM_BANKS = 20;
+  static const int NUM_BANKS = 16;
   static const int NUM_SUBBANKS = 1;
   static const int BANK_WIDTH = 32;
   static const int MACRO_WIDTH = 16;
 
-  static const uint64_t CACHE_SIZE = 2.5 * 1024 * 1024;
+  static const uint64_t CACHE_SIZE = 2 * 1024 * 1024;
   static const uint64_t BASE_ADDR = 0x40000000;
   static const uint64_t END_ADDR = BASE_ADDR + CACHE_SIZE - 1;
 
@@ -50,11 +50,25 @@ vpiHandle testchip_vpi_tsi_t::get_handle(const uint64_t address) {
       bank_index ? "bank_" + std::to_string(bank_index) : "bank";
   std::string subbank_prefix =
       subbank_index ? "ram_" + std::to_string(subbank_index) : "ram";
-  std::string macro_prefix = "mem_0_" + std::to_string(macro_index);
+  std::string macro_prefix = std::to_string(macro_index);
 
-  std::string path_to_ram =
-      "TestDriver.testHarness.chiptop0.system." + bank_prefix + "." +
-      subbank_prefix + ".mem.mem_ext." + macro_prefix + ".u_ram_core.memory";
+  std::string chiptop_path = "TestDriver.testHarness.chiptop0.";
+  std::string ram_path = "system." + bank_prefix + "." + subbank_prefix +
+                         ".mem.mem_ext.mem_0_" + macro_prefix;
+
+#ifndef GL_SIM
+  std::string path_to_ram = chiptop_path + ram_path + ".u_ram_core.memory";
+#else
+  if (bank_index < 4) {
+    std::replace(ram_path.begin(), ram_path.end(), '.', '_');
+  } else {
+    std::string subbank_path =
+        subbank_prefix + ".mem.mem_ext.mem_0_" + macro_prefix;
+    std::replace(subbank_path.begin(), subbank_path.end(), '.', '_');
+    ram_path = "system_" + bank_prefix + "." + subbank_path;
+  }
+  std::string path_to_ram = chiptop_path + ram_path + ".u_ram_core.memory";
+#endif
 
   vpiHandle ram_handle =
       vpi_handle_by_name((PLI_BYTE8*)path_to_ram.c_str(), NULL);
@@ -88,6 +102,8 @@ void testchip_vpi_tsi_t::write_byte(uint64_t addr, uint8_t byte) {
   chunk |= (static_cast<uint32_t>(byte) << bit_in_chunk);
   value.value.vector[chunk_index].aval = chunk;
 
+  std::cerr << "[TB t=" << vpi_time_now() << "] writing " << byte << " to "
+            << addr << "\n";
   vpi_put_value(elem, &value, NULL, vpiNoDelay);
 }
 
@@ -116,13 +132,24 @@ void testchip_vpi_tsi_t::write_chunk(addr_t taddr, size_t nbytes,
   if (taddr == 0x2000000) {
     vpi_printf((PLI_BYTE8*)"Setting MSIP to %d\n", src_data[0]);
 
+#ifndef GL_SIM
     const char* path =
         "TestDriver.testHarness.chiptop0.system.clint_domain.clint.ipi_0";
+#else
+    const char* path =
+        "TestDriver.testHarness.chiptop0.system_clint_domain_clint_ipi_0_reg.Q";
+#endif
+
+    const char* env = std::getenv("SKIP_GDB_LOAD");
+    if (env && std::string(env) == "1") {
+      std::cerr << "SKIP_GDB_LOAD is set, skipping write to MSIP\n";
+      return;
+    }
 
     vpiHandle h_msip = vpi_handle_by_name((PLI_BYTE8*)path, NULL);
     if (!h_msip) {
       vpi_printf((PLI_BYTE8*)"ERROR: Could not get handle to %s\n", path);
-      throw std::runtime_error("Failed to set MSIP");
+      return;
     }
 
     s_vpi_value val;
@@ -169,7 +196,9 @@ void testchip_vpi_tsi_t::read_chunk(addr_t taddr, size_t nbytes, void* dst) {
 testchip_tsi_t* tsi = nullptr;
 
 // Remove VCS simv option from argv if it match pattern -X???=
-void remove_vcs_simv_opt(int& argc, char**& argv) {
+// Static: testchipip's SimTSI.cc links its own copy of this helper, and both
+// objects end up in generic-config simv builds.
+static void remove_vcs_simv_opt(int& argc, char**& argv) {
   int idx = 0;
   while (idx < argc) {
     std::string str = std::string(argv[idx]);

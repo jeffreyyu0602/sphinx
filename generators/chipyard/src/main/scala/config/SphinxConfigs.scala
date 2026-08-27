@@ -29,7 +29,7 @@ class SphinxConfig
           subBanks = 1,
         ) ++
         new voyager.WithVoyager("MXNF4", 64, 64, 512, 576, 256, 0.9, "tsmc7", "E5M3", true, true, true) ++
-        new chipyard.harness.WithVoyagerVerification ++
+        new chipyard.harness.WithSphinxVoyagerVerification ++
         new chipyard.config.WithSystemBusWidth(256) ++
         new chipyard.sphinx.WithMaxBurstSize(128) ++
         new chipyard.clocking.WithSingleClockBroadcastClockGenerator ++

@@ -19,7 +19,7 @@ SEED_FLAG=+ntb_random_seed_automatic
 endif
 
 CLOCK_PERIOD ?= 1.0
-RESET_DELAY ?= 20000 # needed for HyperRAM initialization
+RESET_DELAY ?= 777.7
 
 #----------------------------------------------------------------------------------------
 # gcc configuration/optimization

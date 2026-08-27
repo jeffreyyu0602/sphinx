@@ -451,7 +451,7 @@ lazy val hyperram = (project in file("generators/hyperram"))
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
 
-lazy val voyager = (project in file("generators/voyager"))
+lazy val voyager = (project in file("generators/voyager/soc"))
   .dependsOn(rocketchip, testchipip)
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)

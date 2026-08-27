@@ -13,13 +13,13 @@ SIM_CXXFLAGS = \
 	-I$(RISCV)/include \
 	-I$(dramsim_dir) \
 	-I$(GEN_COLLATERAL_DIR) \
-	-I$(base_dir)/generators/voyager/accelerator \
-	-I$(base_dir)/generators/voyager/accelerator/test/common \
-	-I$(base_dir)/generators/voyager/accelerator/src/ \
-	-I$(base_dir)/generators/voyager/accelerator/test/compiler/proto/ \
-	-I$(base_dir)/generators/voyager/accelerator/lib/xtensor/include \
-	-I$(base_dir)/generators/voyager/accelerator/lib/xtl/include \
-	-I$(base_dir)/generators/voyager/accelerator/lib/spdlog/include \
+	-I$(base_dir)/generators/voyager \
+	-I$(base_dir)/generators/voyager/test/common \
+	-I$(base_dir)/generators/voyager/src/ \
+	-I$(base_dir)/generators/voyager/test/compiler/proto/ \
+	-I$(base_dir)/generators/voyager/lib/xtensor/include \
+	-I$(base_dir)/generators/voyager/lib/xtl/include \
+	-I$(base_dir)/generators/voyager/lib/spdlog/include \
 	-I/cad/mentor/2024.2_1/Mgc_home/shared/include \
 	-I$(CONDA_PREFIX)/include \
 	$(EXTRA_SIM_CXXFLAGS)

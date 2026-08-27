@@ -424,6 +424,21 @@ class WithVoyagerVerification
         val verification = Module(new VoyagerVerification)
         verification.io.clock := th.harnessBinderClock
         verification.io.reset := th.harnessBinderReset
+      }
+    })
+
+// Sphinx variant: verification plus TSI-over-VPI program loading for the
+// DRAM-less chip (the ELF is deposited straight into the scratchpad SRAM
+// macros). Same-port harness binders shadow each other (orElse chaining), so
+// this replaces -- not accompanies -- WithVoyagerVerification. Configs with
+// DRAM load through the standard SimTSI path instead; this loader errors on
+// any address outside the scratchpad.
+class WithSphinxVoyagerVerification
+    extends HarnessBinder({
+      case (th: HasHarnessInstantiators, port: ClockTapPort, chipId: Int) => {
+        val verification = Module(new VoyagerVerification)
+        verification.io.clock := th.harnessBinderClock
+        verification.io.reset := th.harnessBinderReset
 
         val success = SimVPI.connect(th.harnessBinderClock, th.harnessBinderReset, 0)
         when(success) { th.success := true.B }

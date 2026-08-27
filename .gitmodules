@@ -162,4 +162,4 @@
 	url = git@code.stanford.edu:tambe-lab/base-soc.git
 [submodule "generators/voyager"]
 	path = generators/voyager
-	url = https://code.stanford.edu/voyager/voyager-soc-wrapper.git
+	url = https://github.com/StanfordAccelerate/voyager.git

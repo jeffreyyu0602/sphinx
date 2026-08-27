@@ -45,7 +45,7 @@ class MXNF4x64x64
         new chipyard.harness.WithVoyagerVerification ++
         new freechips.rocketchip.subsystem.WithoutTLMonitors ++
         new chipyard.config.WithSystemBusWidth(256) ++
-        new voyager.WithMaxBurstSize(128) ++
+        new chipyard.sphinx.WithMaxBurstSize(128) ++
         new VoyagerRocketConfig
     )
 
@@ -112,7 +112,7 @@ class VoyagerDebugConfig
 
 class VoyagerRocketConfig
     extends Config(
-      new voyager.WithDefaultMaxBurstSize ++
+      new chipyard.sphinx.WithDefaultMaxBurstSize ++
         new freechips.rocketchip.rocket.WithNHugeCores(1) ++ // single rocket-core
         new AbstractConfig
     )
@@ -254,8 +254,8 @@ class AbstractConfig
         /** use default bootrom */
         new testchipip.soc.WithSbusScratchpad(
           base     = 0x40000000L,
-          size     = sys.env.get("SOC_CACHE_SIZE").map(v => BigInt(v)).getOrElse(BigInt(8 * 1024 * 1024)),
-          banks    = sys.env.get("SOC_NUM_BANKS").map(_.toInt).getOrElse(8),
+          size     = sys.env.get("SCRATCHPAD_SIZE").map(v => BigInt(v)).getOrElse(BigInt(8 * 1024 * 1024)),
+          banks    = sys.env.get("NUM_BANKS").map(_.toInt).getOrElse(8),
           subBanks = sys.env.get("NUM_SUBBANKS").map(_.toInt).getOrElse(1),
         ) ++
 
