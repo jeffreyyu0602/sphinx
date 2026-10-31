@@ -61,7 +61,12 @@ The `.gitmodules` of `0733cd8` names `voyager-compiler.git`; `34ceff2` is on
   `modulecmd` (`catapult/2024.2_2`, plus the VCS GNU package for its
   runtime); at another site, edit those lines at the top of
   `generators/voyager/sphinx/firmware/rebuild.sh` so that `$CATAPULT_ROOT`
-  points at the install. Nothing else from Catapult is used.
+  points at the install, and replace the three hard-coded install paths
+  (`CC`, the `shared/include` `-I`, the `shared/lib` `-L`) in
+  `generators/voyager/test/soc/Makefile`, which builds `GenerateSoCBinaries`
+  and `jtag_sim_checker`:
+  `sed -i 's|/cad/mentor/2024.2_2/Mgc_home|<install>|' generators/voyager/test/soc/Makefile`.
+  Nothing else from Catapult is used.
 - A conda env with the packages of `sphinx-repro/env/`
   (`conda-explicit.txt`: `conda list --explicit --md5`; `pip-freeze.txt`:
   the pip packages, without the editable `voyager-compiler`).
@@ -79,10 +84,16 @@ The `.gitmodules` of `0733cd8` names `voyager-compiler.git`; `34ceff2` is on
 
   The compiler loads `main`. If a repo's `main` has moved, download these
   revisions into the cache first and compile with `HF_HUB_OFFLINE=1`.
-- Disk: about 38 GB for the compiled params of all twelve networks (mostly
-  `tensor_files`), 1 GB for the firmware. `FREE_TENSORS=1` (below) keeps the
-  peak at one network's params (5.6 GB at most).
-- Time: per network, 2-25 min to compile and 1-15 min per kit to emit.
+- Disk: about 24 GB for the conda env (`.conda-env`; 5 GB of it nvidia
+  wheels), about 38 GB for the compiled params of all twelve networks
+  (mostly `tensor_files`) and 1 GB for the firmware, so about 63 GB.
+  `FREE_TENSORS=1` (below) keeps the params at one network's (5.6 GB at
+  most): about 31 GB in all. pip's download cache (`~/.cache/pip`) needs a
+  few GB more while the env is created.
+- Time: per network, 2-25 min to compile and 1-15 min per kit to emit. The
+  compile uses every core by default (torch threads); the result does not
+  depend on the thread count (under `taskset -c 0-63` on a 128-core host,
+  four networks reproduced their params exactly).
 
 ## 1. Checkout
 
@@ -121,7 +132,18 @@ conda activate $PWD/.conda-env
 pip install -r sphinx-repro/env/pip-freeze.txt
 printf 'source "$(conda info --base)/etc/profile.d/conda.sh"\nconda activate %s\n' \
     "$PWD/.conda-env" > env.sh
+conda list --explicit --md5 | diff - sphinx-repro/env/conda-explicit.txt
+pip list --format=freeze --exclude-editable | diff - sphinx-repro/env/pip-freeze.txt
 ```
+
+Run `pip` only after `conda create`, in that order. `pip-freeze.txt` is the
+full `pip list` of the verified env, so it also pins packages conda
+installed that are not on PyPI (`awscli==2.17.23`, `conda==23.9.0`, ...);
+pip finds those already installed and skips them. It also holds both the
+cu12 and the cu13 nvidia stacks (about 5 GB together) because the verified
+env did; torch `2.12.1+cu130` needs only the cu13 one, but the list is kept
+as the env that was verified. The two `diff`s check the env (the first may
+differ only in its `# created-by` header line).
 
 `rebuild.sh` sources `env.sh` at the clone root (or `$ENV_SH`), then sets
 everything else itself: `PYTHONPATH` to the checked-out compiler (so a
@@ -229,7 +251,10 @@ WT=$PWD bash -c 'source generators/voyager/sphinx/firmware/rebuild.sh none
 ```
 
 `rebuild.sh` derives the clone root from its own path, which a sourced
-script does not know, hence `WT=$PWD`.
+script does not know, hence `WT=$PWD`. The checker writes its comparison
+files (`gold_vs_accelerator` text) into `test_outputs/` in the current
+directory, here the clone root, where git shows it as untracked; delete it
+after reading.
 
 ## 5. RTL simulation (optional, not re-run)
 
@@ -267,6 +292,12 @@ env of `sphinx-repro/env/`, the Hugging Face revisions above):
   end on `amd135m_decode_kivi`.
 - The regrade command of step 4, fed the kit's expected readbacks as dumps,
   reports `Error count: 0`.
+- A second fresh clone of this branch, following this file as written
+  (step 2 against the verified env, after both `diff`s passed), rebuilt
+  `llama_prefill`, `llama_prefill_mp`, `amd135m_prefill` and
+  `amd135m_decode_kivi` byte for byte (params, both kits) under
+  `taskset -c 0-63`; the other eight were not re-run there for lack of
+  disk.
 - Not tested: recreating the conda env from `sphinx-repro/env/` (the build
   used the env that built the kit: its conda history ends 2026-08-24, and
   only `black` and `py-spy` were pip-installed since), a host other than
