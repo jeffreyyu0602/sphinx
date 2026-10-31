@@ -1,0 +1,48 @@
+diff --git a/src/main/resources/vsrc/TestDriver.v b/src/main/resources/vsrc/TestDriver.v
+index f9b7f5ae4..92564b2ee 100644
+--- a/src/main/resources/vsrc/TestDriver.v
++++ b/src/main/resources/vsrc/TestDriver.v
+@@ -163,8 +163,10 @@ module TestDriver;
+ 
+   `MODEL testHarness(
+     .clock(clock),
+-    .reset(reset),
+-    .io_success(success)
++    .reset(reset)
++    // .io_success(success)
+   );
+ 
++  assign success = 1'b0;;
++
+ endmodule
+diff --git a/src/main/scala/tilelink/SRAM.scala b/src/main/scala/tilelink/SRAM.scala
+index 6703bac3c..a1affd81b 100644
+--- a/src/main/scala/tilelink/SRAM.scala
++++ b/src/main/scala/tilelink/SRAM.scala
+@@ -239,7 +239,7 @@ class TLRAM(
+     // ignore sublane if it is a read or mask is all set
+     val a_read = in.a.bits.opcode === TLMessages.Get
+     val a_sublane = if (eccBytes == 1) false.B else
+-      ~a_read && 
++      ~a_read &&
+       (((in.a.bits.opcode === TLMessages.PutPartialData) && (~in.a.bits.mask.andR)) ||
+       in.a.bits.size < log2Ceil(eccBytes).U)
+     val a_atomic = if (!atomics) false.B else
+diff --git a/src/main/scala/tilelink/Xbar.scala b/src/main/scala/tilelink/Xbar.scala
+index 4d6c9ef7b..62c5ca108 100644
+--- a/src/main/scala/tilelink/Xbar.scala
++++ b/src/main/scala/tilelink/Xbar.scala
+@@ -72,12 +72,12 @@ class TLXbar(policy: TLArbiter.Policy = TLArbiter.roundRobin, nameSuffix: Option
+ 
+   lazy val module = new Impl
+   class Impl extends LazyModuleImp(this) {
++    val wide_bundle = TLBundleParameters.union((node.in ++ node.out).map(_._2.bundle))
+     if ((node.in.size * node.out.size) > (8*32)) {
+       println (s"!!! WARNING !!!")
+       println (s" Your TLXbar ($name with parent $parent) is very large, with ${node.in.size} Masters and ${node.out.size} Slaves.")
+       println (s"!!! WARNING !!!")
+     }
+-    val wide_bundle = TLBundleParameters.union((node.in ++ node.out).map(_._2.bundle))
+     override def desiredName = (Seq("TLXbar") ++ nameSuffix ++ Seq(s"i${node.in.size}_o${node.out.size}_${wide_bundle.shortName}")).mkString("_")
+     TLXbar.circuit(policy, node.in, node.out)
+   }

@@ -1,0 +1,66 @@
+diff --git a/src/main/scala/HyperRAMController.scala b/src/main/scala/HyperRAMController.scala
+index a311aef..25a763a 100644
+--- a/src/main/scala/HyperRAMController.scala
++++ b/src/main/scala/HyperRAMController.scala
+@@ -35,7 +35,7 @@ class HyperBusCtrlIO extends Bundle {
+   }
+ }
+ 
+-class HyperRAMController(val maxBeats: Int = 8, val maxBeatBytes: Int = 8, val hyperBusWidth: Int = 8) extends Module {
++class SphinxHyperRAMController(val maxBeats: Int = 8, val maxBeatBytes: Int = 8, val hyperBusWidth: Int = 8) extends Module {
+   // maxBeats       -  Mem interface supports bursts (composed of one or more beats). This is the max length of the burst.
+   // maxBeatBytes   -
+   // hyperBusWidth  -
+diff --git a/src/main/scala/TLHyperRAM.scala b/src/main/scala/TLHyperRAM.scala
+index c703254..88a30de 100644
+--- a/src/main/scala/TLHyperRAM.scala
++++ b/src/main/scala/TLHyperRAM.scala
+@@ -29,20 +29,21 @@ class TLHyperRAM()(implicit p: Parameters) extends ClockSinkDomain(ClockSinkPara
+   val ctrlDevice    = new SimpleDevice("hyperram-ctrl", Seq("sphinx,hyperram-ctrl"))
+ 
+   // Create a TLManagerNode for the HyperRAM controller
++  val beatBytes = 8
+   val node = TLManagerNode(Seq(TLSlavePortParameters.v1(
+     Seq(TLSlaveParameters.v1(
+       address            = Seq(AddressSet(config.address, config.ramSize - 1)),
+       resources          = managerDevice.reg,
+       regionType         = RegionType.UNCACHED,
+       executable         = true,
+-      supportsArithmetic = TransferSizes(1, config.beatBytes),
+-      supportsLogical    = TransferSizes(1, config.beatBytes),
+-      supportsGet        = TransferSizes(1, config.beatBytes),
+-      supportsPutFull    = TransferSizes(1, config.beatBytes),
+-      supportsPutPartial = TransferSizes(1, config.beatBytes),
+-      supportsHint       = TransferSizes(1, config.beatBytes),
++      supportsArithmetic = TransferSizes(1, beatBytes),
++      supportsLogical    = TransferSizes(1, beatBytes),
++      supportsGet        = TransferSizes(1, beatBytes),
++      supportsPutFull    = TransferSizes(1, beatBytes),
++      supportsPutPartial = TransferSizes(1, beatBytes),
++      supportsHint       = TransferSizes(1, beatBytes),
+       fifoId = Some(0))),
+-    beatBytes = config.beatBytes)))
++    beatBytes = beatBytes)))
+ 
+   // Create a RegisterNode for the HyperRAM controller's registers
+   val regnode = TLRegisterNode(
+@@ -60,7 +61,7 @@ class TLHyperRAM()(implicit p: Parameters) extends ClockSinkDomain(ClockSinkPara
+     withClockAndReset(clock, reset) {
+       val (tl_in, edge) = node.in(0)
+ 
+-      val ctrl = Module(new HyperRAMController)
++      val ctrl = Module(new SphinxHyperRAMController)
+       ctrl.io.hbus <> io.hbus
+ 
+       val acq = Reg(tl_in.a.bits.cloneType)
+@@ -146,7 +147,9 @@ trait CanHavePeripheryHyperRAM { this: BaseSubsystem =>
+     val tl = LazyModule(new TLHyperRAM()(p))
+     tl.clockNode := hyperramClockNode
+     sbus.coupleTo("hyperram") {
+-      TLInwardClockCrossingHelper("hyperram_crossing", tl, tl.node)(hyperramCrossing) := _
++      TLInwardClockCrossingHelper("hyperram_crossing", tl, tl.node)(hyperramCrossing) :=
++      TLFragmenter(8, sbus.beatBytes) :=
++      TLWidthWidget(sbus.beatBytes) := _
+     }
+     pbus.coupleTo("hyperram-ctrl") {
+       TLInwardClockCrossingHelper("hyperram_ctrl_crossing", tl, tl.regnode)(hyperramCtrlCrossing) := _

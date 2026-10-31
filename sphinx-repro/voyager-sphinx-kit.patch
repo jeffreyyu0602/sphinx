@@ -1,0 +1,1126 @@
+diff --git a/codegen.mk b/codegen.mk
+index e10a120..e588b16 100644
+--- a/codegen.mk
++++ b/codegen.mk
+@@ -85,6 +85,37 @@ $(CODEGEN_DIR)/networks/llama_decode_mp/%/model.txt:
+ 	mkdir -p $(dir $@)
+ 	python voyager-compiler/test/test_codegen.py llama_decode $($(notdir $(patsubst %/,%,$(dir $@)))_FLAGS) $(EXTRA_COMPILER_FLAGS) --model_output_dir $(dir $@) $(COMMON_FLAGS) $(LLM_FLAGS) --qconfig mxnf4_attn_head_int6 &> $(dir $@)codegen.log
+ 
++# Sphinx chip kit networks (2026-09-17): other models and graphs on the
++# llama_prefill flags.
++
++$(CODEGEN_DIR)/networks/llama2_7b_prefill/%/model.txt:
++	mkdir -p $(dir $@)
++	python voyager-compiler/test/test_codegen.py llama_prefill $($(notdir $(patsubst %/,%,$(dir $@)))_FLAGS) $(EXTRA_COMPILER_FLAGS) --model_output_dir $(dir $@) $(COMMON_FLAGS) $(LLM_FLAGS) --model_name_or_path meta-llama/Llama-2-7b-hf --qconfig mxnf4_attn_head_int6 &> $(dir $@)codegen.log
++
++$(CODEGEN_DIR)/networks/llama2_7b_verify/%/model.txt:
++	mkdir -p $(dir $@)
++	python voyager-compiler/test/test_codegen.py llama_verify $($(notdir $(patsubst %/,%,$(dir $@)))_FLAGS) $(EXTRA_COMPILER_FLAGS) --model_output_dir $(dir $@) $(COMMON_FLAGS) $(LLM_FLAGS) --model_name_or_path meta-llama/Llama-2-7b-hf --qconfig mxnf4_attn_head_int6 --spec_length 14 &> $(dir $@)codegen.log
++
++$(CODEGEN_DIR)/networks/llama2_7b_decode_kivi/%/model.txt:
++	mkdir -p $(dir $@)
++	python voyager-compiler/test/test_codegen.py llama_decode_kivi $($(notdir $(patsubst %/,%,$(dir $@)))_FLAGS) $(EXTRA_COMPILER_FLAGS) --model_output_dir $(dir $@) $(COMMON_FLAGS) $(LLM_FLAGS) --model_name_or_path meta-llama/Llama-2-7b-hf --qconfig mxnf4_int6 &> $(dir $@)codegen.log
++
++$(CODEGEN_DIR)/networks/amd135m_prefill/%/model.txt:
++	mkdir -p $(dir $@)
++	python voyager-compiler/test/test_codegen.py llama_prefill $($(notdir $(patsubst %/,%,$(dir $@)))_FLAGS) $(EXTRA_COMPILER_FLAGS) --model_output_dir $(dir $@) $(COMMON_FLAGS) $(LLM_FLAGS) --model_name_or_path amd/AMD-Llama-135m --qconfig mxnf4_attn_head_int6 &> $(dir $@)codegen.log
++
++$(CODEGEN_DIR)/networks/amd135m_decode_kivi/%/model.txt:
++	mkdir -p $(dir $@)
++	python voyager-compiler/test/test_codegen.py llama_decode_kivi $($(notdir $(patsubst %/,%,$(dir $@)))_FLAGS) $(EXTRA_COMPILER_FLAGS) --model_output_dir $(dir $@) $(COMMON_FLAGS) $(LLM_FLAGS) --model_name_or_path amd/AMD-Llama-135m --qconfig mxnf4_int6 &> $(dir $@)codegen.log
++
++$(CODEGEN_DIR)/networks/qwama_decode_kivi/%/model.txt:
++	mkdir -p $(dir $@)
++	python voyager-compiler/test/test_codegen.py llama_decode_kivi $($(notdir $(patsubst %/,%,$(dir $@)))_FLAGS) $(EXTRA_COMPILER_FLAGS) --model_output_dir $(dir $@) $(COMMON_FLAGS) $(LLM_FLAGS) --model_name_or_path turboderp/Qwama-0.5B-Instruct --qconfig mxnf4_int6 &> $(dir $@)codegen.log
++
++$(CODEGEN_DIR)/networks/llama31_8b_verify/%/model.txt:
++	mkdir -p $(dir $@)
++	python voyager-compiler/test/test_codegen.py llama_verify $($(notdir $(patsubst %/,%,$(dir $@)))_FLAGS) $(EXTRA_COMPILER_FLAGS) --model_output_dir $(dir $@) $(COMMON_FLAGS) $(LLM_FLAGS) --qconfig mxnf4_attn_head_int6 --spec_length 14 &> $(dir $@)codegen.log
++
+ $(CODEGEN_DIR)/networks/vit/%/model.txt:
+ 	mkdir -p $(dir $@)
+ 	python voyager-compiler/test/test_codegen.py vit $($(notdir $(patsubst %/,%,$(dir $@)))_FLAGS) $(EXTRA_COMPILER_FLAGS) --model_output_dir $(dir $@) $(COMMON_FLAGS) &> $(dir $@)codegen.log
+diff --git a/sphinx/command.txt b/sphinx/command.txt
+new file mode 100644
+index 0000000..35f6af0
+--- /dev/null
++++ b/sphinx/command.txt
+@@ -0,0 +1 @@
++riscv-none-embed-gdb --batch model_layers_0_self_attn_q_proj_fused.riscv -ex "set $r0s=0x401c0000" -ex "set $r0e=0x40200000" -x run_jtag.gdb
+diff --git a/sphinx/firmware/env.sh b/sphinx/firmware/env.sh
+new file mode 100644
+index 0000000..d601df1
+--- /dev/null
++++ b/sphinx/firmware/env.sh
+@@ -0,0 +1,9 @@
++# EDA tools and the repo conda env for the firmware scripts, for
++# non-interactive ssh runs (the CLAUDE.md environment block). The scripts
++# that source this set the SphinxConfig scratchpad geometry themselves.
++eval `modulecmd bash load base catapult/2024.2_2 vcs/T-2022.06-SP2 verdi/S-2021.09-SP1 dc_shell/U-2022.12-SP1`
++export VG_GNU_PACKAGE=/cad/synopsys/vcs_gnu_package/S-2021.09/gnu_9/linux
++source $VG_GNU_PACKAGE/source_me.sh
++export LD_LIBRARY_PATH=$CATAPULT_ROOT/lib:$CATAPULT_ROOT/shared/lib:$LD_LIBRARY_PATH
++source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)/env.sh"
++export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
+diff --git a/sphinx/firmware/firmware.py b/sphinx/firmware/firmware.py
+new file mode 100644
+index 0000000..4314c30
+--- /dev/null
++++ b/sphinx/firmware/firmware.py
+@@ -0,0 +1,295 @@
++#!/usr/bin/env python3
++"""The chip firmware kits, from compile to zip.
++
++    python sphinx/firmware/firmware.py all                both kinds for the twelve networks, then zip
++    python sphinx/firmware/firmware.py graded [net...]    run-once firmware   -> kits/graded/
++    python sphinx/firmware/firmware.py power  [net...]    POWER_LOOP firmware -> kits/power/
++    python sphinx/firmware/firmware.py pack               kits/sphinx-tests.zip and kits/sphinx-power.zip
++    python sphinx/firmware/firmware.py layers <net>       the layers a kit holds, and their MAX_TILES
++
++run_voyager.py does the work, as for a full-mode JTAG simulation but stopping
++after the link (--build-only): every layer --uniquify_layers --skip_layers
++would run is emitted and linked at MAX_TILES=2, then the layers whose tiles
++all store from one scratchpad slot again at MAX_TILES=1 (a readback keeps
++only their last tile). A network with no model.txt under
++test/compiler/networks/ is compiled first through codegen.mk, at
++CLOCK_PERIOD=1.0 so the params are priced at 1 GHz while the emitter and RTL
++stay at the 0.9 ns tapeout clock; one that exists is used as it is, so move
++it aside to recompile.
++
++Both kinds land on the same paths under test/soc/firmware/networks/, so each
++run copies what the chip needs into kits/<kind>/ before the other kind can
++overwrite it, after checking every ELF is the kind it claims: a graded main
++returns, a POWER_LOOP main never does and has no ret (243 graded and 151
++power ELFs checked, 2026-09-15). pack zips those trees and nothing else.
++
++The EDA modules and the conda env come from env.sh beside this file; the
++script re-runs itself under it, so a plain ssh shell is enough. Logs:
++sims/vcs/logs/firmware-<kind>.log, firmware-compile-<net>.log, and the
++regression_results folder each run_voyager.py call names.
++"""
++import argparse
++import contextlib
++import io
++import json
++import os
++import re
++import shutil
++import subprocess
++import sys
++import time
++import zipfile
++from pathlib import Path
++
++HERE = Path(__file__).resolve().parent
++VOY = HERE.parents[1]                      # generators/voyager
++SIMS = VOY.parents[1] / "sims" / "vcs"
++LOGS = SIMS / "logs"
++KITS = HERE / "kits"
++
++NETWORKS = [
++    "llama_prefill", "llama_prefill_mp", "llama_prefill_spmm", "llama_decode", "llama_decode_kivi",
++    "llama2_7b_prefill", "llama2_7b_verify", "llama2_7b_decode_kivi",
++    "amd135m_prefill", "amd135m_decode_kivi", "qwama_decode_kivi", "llama31_8b_verify",
++]
++
++# What the Sphinx runs export (CLAUDE.md).
++SPHINX_ENV = {
++    "MEMORY_SUFFIX": "u_ram_core.memory", "BANK_WIDTH": "32", "MACRO_WIDTH": "16",
++    "SCRATCHPAD_SIZE": "2097152", "NUM_BANKS": "16", "SCRATCHPAD_OFFSET": "262144",
++    "CLOCK_PERIOD": "0.9", "VOYAGER_INT_ID": "1", "LINKER_SCRIPT": "../htif.ld",
++    "CONV2D_IM2COL": "1",
++}
++
++
++def under_environment():
++    """Re-run under env.sh (a bash file: module loads and conda) unless
++    already there; the second run sees FIRMWARE_ENV and carries on."""
++    if os.environ.get("FIRMWARE_ENV") == "1":
++        return
++    LOGS.mkdir(parents=True, exist_ok=True)
++    script = (f'source "{HERE}/env.sh" > "{LOGS}/firmware-env.log" 2>&1; '
++              f'exec python "$0" "$@"')
++    os.execvpe("bash", ["bash", "-c", script, __file__, *sys.argv[1:]],
++               {**os.environ, "FIRMWARE_ENV": "1"})
++
++
++def configure():
++    """Export the Sphinx run environment and the accelerator parameters the
++    RTL build recorded (codegen.mk needs them to compile); return the
++    firmware directory name they make up."""
++    os.environ.update(SPHINX_ENV)
++    os.environ.pop("MACRO_DEPTH", None)
++    for line in (VOY / "build/configs/SphinxConfig/config.sh").read_text().splitlines():
++        m = re.match(r"export\s+(\w+)=(.*)", line.strip())
++        if m:
++            os.environ[m.group(1)] = m.group(2).strip("'\"")
++    e = os.environ
++    return (f"{e['DATATYPE']}/{e['IC_DIMENSION']}x{e['OC_DIMENSION']}"
++            f"_{e['INPUT_BUFFER_SIZE']}x{e['WEIGHT_BUFFER_SIZE']}x{e['ACCUM_BUFFER_SIZE']}"
++            f"_{e['DOUBLE_BUFFERED_ACCUM_BUFFER']}_{e['SUPPORT_MVM']}_{e['SUPPORT_SPMM']}")
++
++
++def now():
++    return time.strftime("%H:%M:%S")
++
++
++def run(cmd, log, cwd=None, env=None, append=False):
++    """Run a command with its output in a log file; return the exit code."""
++    with open(log, "a" if append else "w") as f:
++        return subprocess.run(cmd, cwd=cwd, env=env, stdout=f, stderr=subprocess.STDOUT).returncode
++
++
++# --- compile -----------------------------------------------------------------
++
++def compile_dir(network):
++    return VOY / "test/compiler/networks" / network / os.environ["DATATYPE"]
++
++
++def compile_missing(networks):
++    """codegen.mk compiles a network whose model.txt is missing and leaves one
++    that exists alone, as run_voyager.py would; here at CLOCK_PERIOD=1.0,
++    since codegen.mk prices the params at 1/CLOCK_PERIOD."""
++    for net in networks:
++        out = compile_dir(net)
++        if (out / "model.txt").exists():
++            continue
++        print(f"compile {net} ({now()})", flush=True)
++        log = LOGS / f"firmware-compile-{net}.log"
++        rc = run(["make", "-C", str(VOY), "network-proto"], log,
++                 env={**os.environ, "CLOCK_PERIOD": "1.0", "NETWORK": net})
++        if rc != 0:
++            print(f"compile {net}: FAILED, see {log} and {out}/codegen.log")
++            tail = (out / "codegen.log").read_text(errors="replace").replace("\0", "").splitlines()[-3:]
++            print("\n".join("    " + t for t in tail))
++            return False
++        compiler = subprocess.run(["git", "-C", str(VOY / "voyager-compiler"), "describe", "--always", "--dirty"],
++                                  capture_output=True, text=True).stdout.strip()
++        (out / "compiler.txt").write_text(compiler + "\n")
++        layers = sum(1 for line in (out / "layers.txt").read_text().splitlines() if line.strip())
++        print(f"compile {net}: {layers} layers, compiler {compiler} ({now()})", flush=True)
++    return True
++
++
++# --- layers ------------------------------------------------------------------
++
++def layer_sets(network):
++    """(two, one): the layers run_voyager.py --uniquify_layers --skip_layers
++    would run, split by whether the tile loop ends in a synchronous wait
++    (end op async_wait_*): every tile of such a layer stores from one
++    scratchpad slot, so full JTAG mode keeps only the last one and they are
++    emitted at MAX_TILES=1; the rest at MAX_TILES=2."""
++    sys.path.insert(0, str(VOY))
++    from regression_common import add_layers, get_skip_layers  # noqa: E402
++    datatype = os.environ["DATATYPE"]
++    block = max(int(os.environ["IC_DIMENSION"]), int(os.environ["OC_DIMENSION"]))
++    rules = json.loads((VOY / "ci_skip_rules.json").read_text())
++    skip = get_skip_layers(rules, network, datatype, "rtl", block)
++    layers, counts, tiles = {}, {}, {}
++    with contextlib.redirect_stdout(io.StringIO()):
++        add_layers(network, layers, counts, tiles, True, skip,
++                   codegen_root=str(VOY / "test/compiler"), datatype=datatype)
++    sync = set()
++    for line in (compile_dir(network) / "layers.txt").read_text().splitlines():
++        fields = line.split()
++        if len(fields) == 5 and fields[2].startswith("async_wait"):
++            sync.add(fields[0])
++    two = [l for l in layers[network] if l not in sync]
++    one = [l for l in layers[network] if l in sync]
++    return two, one
++
++
++# --- emit --------------------------------------------------------------------
++
++def elf_kind(elf):
++    """graded or power, from the ELF itself: a graded main returns, a
++    POWER_LOOP main never does and so has no ret at all. (Where main's last
++    instruction lands is not a test: GCC parks cold blocks that end in a
++    backward jump after the epilogue of graded mains too.)"""
++    text = subprocess.run(["riscv64-unknown-elf-objdump", "-d", "--no-show-raw-insn", str(elf)],
++                          capture_output=True, text=True).stdout
++    in_main, rets = False, 0
++    for line in text.splitlines():
++        if re.match(r"^[0-9a-f]+ <main>:", line):
++            in_main = True
++        elif re.match(r"^[0-9a-f]+ <[^>]*>:$", line) and in_main:
++            break
++        elif in_main and line.endswith("\tret"):
++            rets += 1
++    return "graded" if rets else "power"
++
++
++def run_voyager(max_tiles, extra, log, append=False):
++    cmd = ["python", "run_voyager.py", "--config", "SphinxConfig", "--jtag-mode", "full",
++           "--build-only", *extra]
++    return run(cmd, log, cwd=SIMS, env={**os.environ, "MAX_TILES": str(max_tiles)}, append=append)
++
++
++def build(kind, networks, cfg):
++    """Emit and link through run_voyager.py, then stage into kits/<kind>."""
++    if not compile_missing(networks):
++        return False
++    if kind == "power":
++        os.environ["POWER_LOOP"] = "1"
++    else:
++        os.environ.pop("POWER_LOOP", None)
++    log = LOGS / f"firmware-{kind}.log"
++    start = time.time() - 1
++    print(f"{kind}: emitting and linking {' '.join(networks)} ({now()}), log {log}", flush=True)
++    if run_voyager(2, ["--models", ",".join(networks), "--uniquify_layers", "--skip_layers"], log) != 0:
++        print(f"{kind}: run_voyager.py failed, see {log}")
++        return False
++    sets = {net: layer_sets(net) for net in networks}
++    for net, (_, one) in sets.items():
++        if one and run_voyager(1, ["--models", net, "--tests", ",".join(one)], log, append=True) != 0:
++            print(f"{kind} {net}: the MAX_TILES=1 layers failed, see {log}")
++            return False
++
++    ok = True
++    for net, (two, one) in sets.items():
++        fw = VOY / "test/soc/firmware/networks" / net / cfg
++        kit = KITS / kind / "networks" / net / cfg
++        shutil.rmtree(kit, ignore_errors=True)
++        kit.mkdir(parents=True)
++        # layers.txt gives the chip-side scripts the program order of the layers.
++        shutil.copy(compile_dir(net) / "layers.txt", kit)
++        staged, dropped, wrong = 0, [], []
++        for layer in two + one:
++            elf = fw / f"{layer}.riscv"
++            # Fresh ELFs only: a layer the emitter dropped must not ship stale.
++            if not elf.exists() or elf.stat().st_mtime < start:
++                dropped.append(layer)
++                continue
++            if elf_kind(elf) != kind:
++                wrong.append(layer)
++                continue
++            shutil.copy(elf, kit)
++            if kind == "graded":
++                shutil.copy(fw / f"{layer}_scratchpad_dump.txt", kit)
++                for expected in fw.glob(f"{layer}_scratchpad_expected.bin.*"):
++                    shutil.copy(expected, kit)
++            staged += 1
++        print(f"{kind} {net}: {staged} layers in kits/{kind}, dropped={dropped} wrong-kind={wrong}", flush=True)
++        ok = ok and not wrong
++    for line in log.read_text(errors="replace").splitlines():
++        if "did not emit" in line:
++            print("    " + line)
++    return ok
++
++
++# --- pack --------------------------------------------------------------------
++
++def pack():
++    """Zip the staged trees, each with its chip-side script."""
++    for kind in ("graded", "power"):
++        tree = KITS / kind
++        if not (tree / "networks").is_dir():
++            print(f"pack: no kits/{kind} yet")
++            continue
++        script = "run_layers.py" if kind == "graded" else "run_power.py"
++        shutil.copy(HERE.parent / script, tree)
++        zip_path = KITS / ("sphinx-tests.zip" if kind == "graded" else "sphinx-power.zip")
++        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
++            for path in sorted(p for p in tree.rglob("*") if p.is_file()):
++                z.write(path, path.relative_to(tree))
++        elfs = sum(1 for _ in (tree / "networks").rglob("*.riscv"))
++        networks = sum(1 for p in (tree / "networks").iterdir() if p.is_dir())
++        print(f"pack: {zip_path} ({zip_path.stat().st_size / 2**20:.0f} MB): "
++              f"{elfs} ELFs, {networks} networks")
++    return True
++
++
++# --- stages ------------------------------------------------------------------
++
++def main():
++    p = argparse.ArgumentParser(description=__doc__,
++                                formatter_class=argparse.RawDescriptionHelpFormatter)
++    p.add_argument("stage", choices=["all", "graded", "power", "pack", "layers"])
++    p.add_argument("networks", nargs="*", help="default: the twelve chip networks")
++    args = p.parse_args()
++    under_environment()
++    networks = args.networks or NETWORKS
++    LOGS.mkdir(parents=True, exist_ok=True)
++    KITS.mkdir(parents=True, exist_ok=True)
++    cfg = configure()
++
++    if args.stage == "layers":
++        for net in networks:
++            two, one = layer_sets(net)
++            for layer in two:
++                print(f"{net}  MAX_TILES=2  {layer}")
++            for layer in one:
++                print(f"{net}  MAX_TILES=1  {layer}")
++        return 0
++    if args.stage == "pack":
++        return 0 if pack() else 1
++    if args.stage in ("graded", "power"):
++        return 0 if build(args.stage, networks, cfg) else 1
++    ok = build("graded", networks, cfg)
++    ok = build("power", networks, cfg) and ok
++    ok = pack() and ok
++    return 0 if ok else 1
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/sphinx/firmware/rebuild.sh b/sphinx/firmware/rebuild.sh
+new file mode 100755
+index 0000000..ac9415d
+--- /dev/null
++++ b/sphinx/firmware/rebuild.sh
+@@ -0,0 +1,109 @@
++#!/bin/bash
++# Rebuild the Sphinx chip firmware from the recorded commits, without
++# run_voyager.py (its --build-only still builds the simv, which in a fresh
++# tree means elaboration and Catapult HLS).
++#
++#   rebuild.sh compile <net>               params -> $VOY/test/compiler/networks
++#   rebuild.sh emit <graded|power> <net>   emit + link -> $VOY/test/soc/firmware
++#
++# Lives at generators/voyager/sphinx/firmware/ in a superrepo checkout of
++# 473ff85e with generators/voyager at 0733cd8 and voyager-compiler at
++# 34ceff2 (SPHINX_REPRO.md). ENV_SH is the repo env (conda, riscv tools).
++
++WT=${WT:-$(cd "$(dirname "$0")/../../../.." && pwd)}
++BUILD_DIR=${BUILD_DIR:-$WT/generators/voyager/build/sphinx-repro}
++ENV_SH=${ENV_SH:-$WT/env.sh}
++VOY=$WT/generators/voyager
++CFG=MXNF4/64x64_512x576x256_true_true_true
++
++# EDA modules (Catapult g++ and headers, no HLS run) and the conda env
++# (protobuf, torch, riscv64-unknown-elf 13.2.0).
++eval `modulecmd bash load base catapult/2024.2_2 vcs/T-2022.06-SP2 verdi/S-2021.09-SP1 dc_shell/U-2022.12-SP1`
++export VG_GNU_PACKAGE=/cad/synopsys/vcs_gnu_package/S-2021.09/gnu_9/linux
++source $VG_GNU_PACKAGE/source_me.sh
++export LD_LIBRARY_PATH=$CATAPULT_ROOT/lib:$CATAPULT_ROOT/shared/lib:$LD_LIBRARY_PATH
++source "$ENV_SH"
++export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
++# The conda env's editable voyager_compiler points at the live tree; use
++# the checked-out compiler instead.
++export PYTHONPATH=$VOY/voyager-compiler/src
++
++# Sphinx run environment (CLAUDE.md) and the SphinxConfig accelerator
++# parameters (build/configs/SphinxConfig/config.sh as of 2026-09-17).
++export MEMORY_SUFFIX=u_ram_core.memory BANK_WIDTH=32 MACRO_WIDTH=16
++export SCRATCHPAD_SIZE=2097152 NUM_BANKS=16 SCRATCHPAD_OFFSET=262144
++export CLOCK_PERIOD=0.9 VOYAGER_INT_ID=1 LINKER_SCRIPT=../htif.ld
++export CONV2D_IM2COL=1
++unset MACRO_DEPTH
++export DATATYPE=MXNF4 IC_DIMENSION=64 OC_DIMENSION=64
++export INPUT_BUFFER_SIZE=512 WEIGHT_BUFFER_SIZE=576 ACCUM_BUFFER_SIZE=256
++export DOUBLE_BUFFERED_ACCUM_BUFFER=true SUPPORT_MVM=true SUPPORT_SPMM=true
++export BUILD_DIR
++
++# What run_voyager.py --jtag-mode full exports for the emitter.
++export JTAG_SIM=1 SIMS=gold,accelerator PROJECT_ROOT=$VOY
++export CODEGEN_DIR=test/compiler SPDLOG_LEVEL=DEBUG
++export SOC_MEM_OFFSET=262144 CACHE_SIZE=917504
++export EXTRA_SIM_CXXFLAGS="-DMXNF4 -DIC_DIMENSION=64 -DOC_DIMENSION=64 \
++-DINPUT_BUFFER_SIZE=512 -DWEIGHT_BUFFER_SIZE=576 -DACCUM_BUFFER_SIZE=256 \
++-DDOUBLE_BUFFERED_ACCUM_BUFFER=true -DSUPPORT_MVM=true -DSUPPORT_SPMM=true \
++-DCLOCK_PERIOD=0.9"
++
++# Layers the kit holds: what --uniquify_layers --skip_layers selects
++# (regression_common.add_layers), split by firmware.py's rule: a layer whose
++# layers.txt end op is async_wait_* stores every tile from one slot and is
++# emitted at MAX_TILES=1, the rest at MAX_TILES=2. Prints "<two> <one>".
++layer_sets() {
++    (cd "$VOY" && python - "$1" <<'EOF'
++import contextlib, io, json, os, sys
++from regression_common import add_layers, get_skip_layers
++net = sys.argv[1]
++rules = json.load(open("ci_skip_rules.json"))
++skip = get_skip_layers(rules, net, "MXNF4", "rtl", 64)
++layers, counts, tiles = {}, {}, {}
++with contextlib.redirect_stdout(io.StringIO()):
++    add_layers(net, layers, counts, tiles, True, skip,
++               codegen_root="test/compiler", datatype="MXNF4")
++sync = set()
++for line in open(f"test/compiler/networks/{net}/MXNF4/layers.txt"):
++    f = line.split()
++    if len(f) == 5 and f[2].startswith("async_wait"):
++        sync.add(f[0])
++two = [l for l in layers[net] if l not in sync]
++one = [l for l in layers[net] if l in sync]
++print(",".join(two), ",".join(one))
++EOF
++    )
++}
++
++emit_and_link() {  # <net> <max_tiles> <comma-separated layers>
++    local net=$1 tiles=$2 tests=$3
++    [ -z "$tests" ] && return 0
++    MAX_TILES=$tiles NETWORK=$net TESTS=$tests \
++        make -C "$VOY/test/soc" GenerateSoCBinaries || true
++    local flags="-DSUPPRESS_PRINTF -DNO_TESTBENCH -DVOYAGER_INT_ID=1"
++    for layer in ${tests//,/ }; do
++        if [ ! -f "$VOY/test/soc/firmware/networks/$net/$CFG/$layer.c" ]; then
++            echo "NOT EMITTED: $net $layer"
++            continue
++        fi
++        MAX_TILES=$tiles make -C "$WT/tests/voyager" "EXTRA_CFLAGS=$flags" \
++            "networks/$net/$CFG/$layer.riscv" || echo "LINK FAILED: $layer"
++    done
++}
++
++case $1 in
++compile)
++    cd "$VOY" && CLOCK_PERIOD=1.0 NETWORK=$2 make network-proto
++    git -C "$VOY/voyager-compiler" describe --always --dirty \
++        > "$VOY/test/compiler/networks/$2/MXNF4/compiler.txt"
++    ;;
++emit)
++    if [ "$2" = power ]; then export POWER_LOOP=1; else unset POWER_LOOP; fi
++    read -r two one <<< "$(layer_sets "$3")"
++    echo "two-tile: $two"
++    echo "one-tile: ${one:-}"
++    emit_and_link "$3" 2 "$two"
++    emit_and_link "$3" 1 "${one:-}"
++    ;;
++esac
+diff --git a/sphinx/hello.gdb b/sphinx/hello.gdb
+new file mode 100644
+index 0000000..78c6313
+--- /dev/null
++++ b/sphinx/hello.gdb
+@@ -0,0 +1,14 @@
++# Minimal GDB script: load an ELF into the Sphinx scratchpad over JTAG, run
++# it, stop at _exit, show the exit code. Invoke as
++#   riscv64-unknown-elf-gdb --batch <elf> -x hello.gdb
++set confirm off
++set pagination off
++set arch riscv:rv64
++set remotetimeout 3600
++target extended-remote localhost:3333
++load
++set $pc = 0x40000000
++break _exit
++continue
++printf "program returned %d\n", $a0
++quit
+diff --git a/sphinx/run_layers.py b/sphinx/run_layers.py
+new file mode 100644
+index 0000000..030fb12
+--- /dev/null
++++ b/sphinx/run_layers.py
+@@ -0,0 +1,306 @@
++#!/usr/bin/env python3
++"""Run every layer ELF of every network in a folder on the Sphinx chip over
++JTAG and read the results back.
++
++    python run_layers.py --dir networks --out results
++    python run_layers.py --dir networks --networks llama_decode,llama_decode_kivi
++    python run_layers.py --dir networks --networks llama_prefill --layers neg,mul_5
++
++--dir is the folder that holds one sub-folder per network, as in the zip:
++    networks/<network>/MXNF4/64x64_512x576x256_true_true_true/<layer>.riscv
++                                                            /<layer>_scratchpad_dump.txt
++Every network found there runs unless --networks names some. For each layer a
++GDB command file is written that resets the SoC, loads the ELF, runs to
++_exit, prints the accelerator cycle counters and dumps each read-back region
++(from the layer's dump list) to
++    <out>/<network>/<network>_<layer>_scratchpad.bin.<i>
++Each region is then compared here, byte for byte, against the reference
++emitted beside the ELF (<layer>_scratchpad_expected.bin.<i>, written by
++`jtag_sim_checker --emit-reference`), so nothing has to be copied to the
++server. A layer with no reference still runs and dumps, and keeps its own
++status. Also per network: <layer>.gdb, <layer>.log and summary.csv; and
++<out>/summary.csv over all networks.
++
++OpenOCD must already be running (gdb port 3333 by default).
++"""
++import argparse
++import csv
++import os
++import re
++import subprocess
++import sys
++import time
++
++CONFIG = os.path.join("MXNF4", "64x64_512x576x256_true_true_true")
++
++COUNTERS = [
++    ("matrix", 0x20000108),
++    ("vector", 0x20000208),
++    ("mvm", 0x20000308),
++    ("spmm", 0x20000408),
++    ("accelerator", 0x20000008),
++]
++
++FIELDS = (["network", "layer", "status", "gdb_exit", "seconds", "regions", "errors",
++           "graded", "zeros"] + [n for n, _ in COUNTERS])
++
++
++def signed_zero(got, want, i):
++    """True when byte i differs only as the sign of a bf16 zero.
++
++    bf16 is two bytes little-endian, so the sign is the odd byte and the value
++    is zero when the even byte is zero in both. -0.0 and +0.0 compare equal,
++    which is the verdict jtag_sim_checker gives (it compares decoded values),
++    so such a byte is not an error. `neg` negates, so it is the layer that
++    turns a zero into -0.0 where the chip leaves +0.0.
++    """
++    return (i % 2 == 1 and {got[i], want[i]} == {0x00, 0x80}
++            and got[i - 1] == 0 and want[i - 1] == 0)
++
++
++def compare_region(dump_path, expected_path):
++    """(errors, compared bytes, first bad offset, signed zeros) for one region.
++
++    Every byte of a dumped region is graded -- the dump list is the emitter's
++    readback_regions(), the scratchpad-resident outputs bounded to the bytes
++    gold wrote -- and gold and the accelerator are compared with no tolerance,
++    so a byte compare is the verdict jtag_sim_checker gives, except for the
++    signed zeros above, which are counted apart rather than hidden.
++    """
++    with open(dump_path, "rb") as f:
++        got = f.read()
++    with open(expected_path, "rb") as f:
++        want = f.read()
++    n = min(len(got), len(want))
++    if got[:n] == want[:n] and len(got) == len(want):
++        return 0, n, None, 0
++
++    errors, first, zeros = 0, None, 0
++    for i in range(n):
++        if got[i] == want[i]:
++            continue
++        if signed_zero(got, want, i):
++            zeros += 1
++            continue
++        errors += 1
++        if first is None:
++            first = i
++    errors += abs(len(got) - len(want))
++    return errors, n, first, zeros
++
++
++def check_layer(layer_dir, layer, prefix, regions):
++    """(status, errors, graded bytes, detail lines) from the saved reference.
++
++    status is None when there is no reference to grade against, leaving the
++    caller's own status alone.
++    """
++    ref = os.path.join(layer_dir, layer + "_scratchpad")
++    if not os.path.exists(f"{ref}_expected.bin.0"):
++        return None, "", "", "", []
++    errors, graded, zeros, detail = 0, 0, 0, []
++    for i in range(len(regions)):
++        expected = f"{ref}_expected.bin.{i}"
++        if not os.path.exists(expected):
++            return "NO REFERENCE", "", "", "", [f"region {i}: {expected} is missing"]
++        bad, compared, first, zero = compare_region(f"{prefix}.{i}", expected)
++        errors += bad
++        graded += compared
++        zeros += zero
++        if bad:
++            detail.append(f"region {i}: {bad} of {compared} bytes differ, "
++                          f"first at region offset {first:#x}")
++        if zero:
++            detail.append(f"region {i}: {zero} signed-zero byte(s), not an error "
++                          f"(-0.0 equals +0.0)")
++    return ("ok" if errors == 0 else "MISMATCH"), errors, graded, zeros, detail
++
++
++def gdb_script(dump_list, prefix, port):
++    lines = [
++        "set confirm off",
++        "set pagination off",
++        "set arch riscv:rv64",
++        "set remotetimeout 3600",
++        f"target extended-remote localhost:{port}",
++        "monitor reset halt",
++    ]
++    # The cycle counters are read-only and clear only on a real SoC reset,
++    # which the debug module's reset may not deliver on the board. Sample
++    # them before the run and report the difference, so each layer's numbers
++    # stand alone whatever the reset did.
++    for name, addr in COUNTERS:
++        lines.append(f'printf "BASE {name} %llu\\n", *(unsigned long long*){addr:#x}')
++    lines += [
++        "load",
++        "set $pc = 0x40000000",
++        "break _exit",
++        "continue",
++    ]
++    for name, addr in COUNTERS:
++        lines.append(f'printf "COUNTER {name} %llu\\n", *(unsigned long long*){addr:#x}')
++    with open(dump_list) as f:
++        regions = [line.split() for line in f if line.strip()]
++    for i, (start, length) in enumerate(regions):
++        begin = int(start, 0)
++        end = begin + int(length, 0)
++        lines.append(f"dump binary memory {prefix}.{i} {begin:#x} {end:#x}")
++        lines.append(f'printf "DUMPED {i} {begin:#x} {end:#x}\\n"')
++    lines.append("quit")
++    return "\n".join(lines) + "\n", regions
++
++
++def run_layer(args, network, layer_dir, out_dir, layer):
++    elf = os.path.join(layer_dir, layer + ".riscv")
++    dump_list = os.path.join(layer_dir, layer + "_scratchpad_dump.txt")
++    row = {"network": network, "layer": layer}
++    if not os.path.exists(dump_list):
++        # An ELF without a dump list was not emitted for full JTAG mode (a
++        # stale program-mode build, or a layer full mode refused): nothing
++        # to read back, so it is not run.
++        row["status"] = "skipped"
++        row["regions"] = "no dump list"
++        with open(os.path.join(out_dir, layer + ".log"), "w") as f:
++            f.write(f"skipped: {dump_list} does not exist; {elf} is not a full-mode ELF\n")
++        return row
++    prefix = os.path.join(out_dir, f"{network}_{layer}_scratchpad.bin")
++    script, regions = gdb_script(dump_list, prefix, args.port)
++    script_path = os.path.join(out_dir, layer + ".gdb")
++    with open(script_path, "w") as f:
++        f.write(script)
++
++    t0 = time.time()
++    try:
++        proc = subprocess.run(
++            [args.gdb, "--batch", elf, "-x", script_path],
++            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
++            timeout=args.timeout,
++        )
++    except subprocess.TimeoutExpired:
++        row["status"] = "TIMEOUT"
++        return row
++    row["seconds"] = f"{time.time() - t0:.1f}"
++    with open(os.path.join(out_dir, layer + ".log"), "w") as f:
++        f.write(proc.stdout)
++
++    row["gdb_exit"] = proc.returncode
++    for name, _ in COUNTERS:
++        after = re.search(rf"^COUNTER {name} (\d+)", proc.stdout, re.M)
++        before = re.search(rf"^BASE {name} (\d+)", proc.stdout, re.M)
++        if after and before:
++            row[name] = str(int(after.group(1)) - int(before.group(1)))
++        else:
++            row[name] = after.group(1) if after else ""
++    dumped = len(re.findall(r"^DUMPED ", proc.stdout, re.M))
++    row["regions"] = f"{dumped}/{len(regions)}"
++    ok = (proc.returncode == 0 and dumped == len(regions)
++          and all(os.path.exists(f"{prefix}.{i}")
++                  and os.path.getsize(f"{prefix}.{i}") == int(r[1], 0)
++                  for i, r in enumerate(regions)))
++    row["status"] = "ok" if ok else "FAILED"
++    if not ok:
++        return row
++
++    graded_status, row["errors"], row["graded"], row["zeros"], detail = check_layer(
++        layer_dir, layer, prefix, regions)
++    if graded_status is not None:
++        row["status"] = graded_status
++    if detail:
++        with open(os.path.join(out_dir, layer + ".log"), "a") as f:
++            f.write("\n" + "\n".join(detail) + "\n")
++    return row
++
++
++def layers_in_program_order(layer_dir):
++    """The layer ELFs in the order the network runs them: the kit ships the
++    compiler's layers.txt beside them (first column: the layer, one line per
++    layer in program order). An ELF it does not name, or a kit without it,
++    falls back to name order."""
++    elfs = sorted(f[:-6] for f in os.listdir(layer_dir) if f.endswith(".riscv"))
++    program_order = {}
++    try:
++        with open(os.path.join(layer_dir, "layers.txt")) as f:
++            for line in f:
++                fields = line.split()
++                if fields and fields[0] not in program_order:
++                    program_order[fields[0]] = len(program_order)
++    except FileNotFoundError:
++        return elfs
++    return sorted(elfs, key=lambda layer: (program_order.get(layer, len(program_order)), layer))
++
++
++def write_summary(path, rows):
++    with open(path, "w", newline="") as f:
++        w = csv.DictWriter(f, fieldnames=FIELDS)
++        w.writeheader()
++        for row in rows:
++            w.writerow({k: row.get(k, "") for k in FIELDS})
++
++
++def main():
++    p = argparse.ArgumentParser(description=__doc__,
++                                formatter_class=argparse.RawDescriptionHelpFormatter)
++    p.add_argument("--dir", default="networks", help="folder with one sub-folder per network")
++    p.add_argument("--out", default="results", help="output folder; gets one sub-folder per network")
++    p.add_argument("--networks", default=None, help="comma list; default: every network under --dir")
++    p.add_argument("--layers", default=None, help="comma list; default: every .riscv of each network")
++    p.add_argument("--gdb", default="riscv-none-embed-gdb", help="GDB executable")
++    p.add_argument("--port", default="3333", help="OpenOCD gdb port")
++    p.add_argument("--timeout", type=int, default=1800, help="seconds per layer")
++    args = p.parse_args()
++
++    if args.networks:
++        networks = args.networks.split(",")
++    else:
++        networks = sorted(n for n in os.listdir(args.dir)
++                          if os.path.isdir(os.path.join(args.dir, n, CONFIG)))
++    if not networks:
++        sys.exit(f"no <network>/{CONFIG} folders under {args.dir}")
++
++    all_rows = []
++    for network in networks:
++        layer_dir = os.path.join(args.dir, network, CONFIG)
++        if not os.path.isdir(layer_dir):
++            print(f"== {network}: no {layer_dir}, skipped", flush=True)
++            all_rows.append({"network": network, "layer": "", "status": "no folder"})
++            continue
++        if args.layers:
++            layers = args.layers.split(",")
++        else:
++            layers = layers_in_program_order(layer_dir)
++        out_dir = os.path.join(args.out, network)
++        os.makedirs(out_dir, exist_ok=True)
++        print(f"== {network}: {len(layers)} layer(s) -> {out_dir}", flush=True)
++        rows = []
++        for layer in layers:
++            row = run_layer(args, network, layer_dir, out_dir, layer)
++            rows.append(row)
++            print("   " + f"{layer:44s} " +
++                  "  ".join(f"{k}={row.get(k, '')}" for k in FIELDS[2:]), flush=True)
++        write_summary(os.path.join(out_dir, "summary.csv"), rows)
++        ok = sum(r.get("status") == "ok" for r in rows)
++        skipped = sum(r.get("status") == "skipped" for r in rows)
++        print(f"   {ok}/{len(rows) - skipped} passed"
++              + (f", {skipped} skipped (no dump list)" if skipped else ""), flush=True)
++        all_rows += rows
++
++    write_summary(os.path.join(args.out, "summary.csv"), all_rows)
++    skipped = [f"{r['network']}/{r['layer']}" for r in all_rows if r.get("status") == "skipped"]
++    bad = [f"{r['network']}/{r['layer']}" for r in all_rows
++           if r.get("status") not in ("ok", "skipped")]
++    ran = len(all_rows) - len(skipped)
++    ungraded = [f"{r['network']}/{r['layer']}" for r in all_rows if r.get("graded") == ""]
++    print(f"\n{ran - len(bad)}/{ran} layers passed; "
++          f"summary in {os.path.join(args.out, 'summary.csv')}")
++    if skipped:
++        print("skipped (no dump list, not full-mode ELFs): " + ", ".join(skipped))
++    if bad:
++        print("FAILED: " + ", ".join(bad))
++    if ungraded:
++        print("ran but not graded (no reference emitted): " + ", ".join(ungraded))
++    print(f"Copy {args.out}/ to the server only to re-grade a MISMATCH with "
++          f"jtag_sim_checker, which reports which tensor differs.")
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/sphinx/run_power.py b/sphinx/run_power.py
+new file mode 100644
+index 0000000..ff714e2
+--- /dev/null
++++ b/sphinx/run_power.py
+@@ -0,0 +1,308 @@
++#!/usr/bin/env python3
++"""Drive the POWER_LOOP firmware on the Sphinx chip for a steady-state power
++measurement. These ELFs replay their layer forever (`while (1)` around the
++program body, see EmitC.cc), so unlike the graded ones they never return and
++`run_layers.py` cannot drive them.
++
++    python run_power.py list
++    python run_power.py start  --network llama_prefill --layer 5
++    python run_power.py sample --seconds 60 --clock-mhz 100
++    python run_power.py stop
++
++Every command starts OpenOCD itself (--openocd-cfg, default openocd.cfg in
++the current folder), waits for its gdb port, does its work over GDB and stops
++OpenOCD again. Nothing has to run in another terminal, and a reset between
++layers leaves nothing stale behind. The chip keeps running when OpenOCD
++exits, so after `start` the loop spins with no debugger attached at all.
++
++`list` numbers the layers of each network; --layer takes that number or the
++full name. `start` resets the SoC, loads the layer's ELF, sets the entry PC,
++resumes, detaches and prints which layer is running; --verify-seconds N then
++samples the counters for N seconds to confirm the loop is live.
++`sample` reads the accelerator cycle counters twice, --seconds apart, and
++reports what share of the wall clock each unit was busy. It divides by the
++interval the two reads actually spanned, not by --seconds: each read costs a
++few seconds of GDB startup that falls inside the window, so a short window
++otherwise reads far too high. `stop` halts the chip.
++"""
++import argparse
++import os
++import re
++import subprocess
++import sys
++import time
++
++CONFIG = os.path.join("MXNF4", "64x64_512x576x256_true_true_true")
++ENTRY = 0x40000000
++
++COUNTERS = [
++    ("matrix", 0x20000108),
++    ("vector", 0x20000208),
++    ("mvm", 0x20000308),
++    ("spmm", 0x20000408),
++    ("accelerator", 0x20000008),
++]
++
++GDB_PREAMBLE = [
++    "set confirm off",
++    "set pagination off",
++    "set arch riscv:rv64",
++    "set remotetimeout 3600",
++]
++
++# No breakpoint: the firmware never reaches an exit. Detaching leaves the core
++# running, so GDB and OpenOCD add nothing to what the meter sees.
++START_COMMANDS = [
++    "monitor reset halt",
++    "load",
++    f"set $pc = {ENTRY:#x}",
++    "monitor resume",
++    "detach",
++]
++
++
++class OpenOCD:
++    """One OpenOCD process logging to a file, usable once it announces its gdb
++    port -- the same wait run_voyager.py does for its simulated JTAG."""
++
++    def __init__(self, args, log_path):
++        self.log_path = log_path
++        os.makedirs(os.path.dirname(log_path) or ".", exist_ok=True)
++        self.log = open(log_path, "w")
++        self.proc = subprocess.Popen(["openocd", "-f", args.openocd_cfg],
++                                     stdout=self.log, stderr=subprocess.STDOUT)
++        try:
++            self.port = self.wait_for(r"Listening on port (\d+) for gdb connections",
++                                      args.openocd_timeout).group(1)
++        except Exception:
++            self.stop()
++            raise
++
++    def wait_for(self, pattern, timeout):
++        deadline = time.monotonic() + timeout
++        while time.monotonic() < deadline:
++            with open(self.log_path) as f:
++                for line in f:
++                    m = re.search(pattern, line)
++                    if m:
++                        return m
++            if self.proc.poll() is not None:
++                raise RuntimeError(f"openocd exited with {self.proc.returncode}, "
++                                   f"see {self.log_path}")
++            time.sleep(0.5)
++        raise TimeoutError(f"openocd did not announce a gdb port within {timeout} s, "
++                           f"see {self.log_path}")
++
++    def stop(self):
++        if self.proc.poll() is None:
++            self.proc.terminate()
++            try:
++                self.proc.wait(timeout=5)
++            except subprocess.TimeoutExpired:
++                self.proc.kill()
++                self.proc.wait()
++        self.log.close()
++
++    def __enter__(self):
++        return self
++
++    def __exit__(self, *exc):
++        self.stop()
++
++
++def gdb(args, port, commands, elf=None, log_path=None):
++    """Run one batch GDB session over the commands; return (output, exit code).
++
++    GDB stops at the first failing command and exits non-zero, so a failed
++    load shows as a non-zero code rather than a partially run script.
++    """
++    script = "\n".join(GDB_PREAMBLE + [f"target extended-remote localhost:{port}"]
++                       + commands + ["quit"]) + "\n"
++    path = os.path.join(args.out, "power.gdb")
++    os.makedirs(args.out, exist_ok=True)
++    with open(path, "w") as f:
++        f.write(script)
++    cmd = [args.gdb, "--batch"] + ([elf] if elf else []) + ["-x", path]
++    proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
++                          text=True, timeout=args.timeout)
++    if log_path:
++        with open(log_path, "w") as f:
++            f.write(proc.stdout)
++    return proc.stdout, proc.returncode
++
++
++def layer_dir(args, network):
++    return os.path.join(args.dir, network, CONFIG)
++
++
++def layers_of(args, network):
++    """The network's layer ELFs in the order the network runs them, which is
++    the order `list` numbers them.
++
++    The kit ships the compiler's layers.txt beside the ELFs (first column: the
++    layer, one line per layer in program order); an ELF it does not name, or a
++    kit without it, falls back to name order.
++    """
++    d = layer_dir(args, network)
++    if not os.path.isdir(d):
++        sys.exit(f"no network {network} under {args.dir}; see `run_power.py list`")
++    elfs = sorted(f[:-6] for f in os.listdir(d) if f.endswith(".riscv"))
++    program_order = {}
++    try:
++        with open(os.path.join(d, "layers.txt")) as f:
++            for line in f:
++                fields = line.split()
++                if fields and fields[0] not in program_order:
++                    program_order[fields[0]] = len(program_order)
++    except FileNotFoundError:
++        return elfs
++    return sorted(elfs, key=lambda layer: (program_order.get(layer, len(program_order)), layer))
++
++
++def resolve_layer(args, layers):
++    """--layer as the number `list` shows, or as the full name; returns both."""
++    if args.layer is None:
++        sys.exit("start needs --layer <number|name>; see `run_power.py list`")
++    if args.layer.isdigit():
++        index = int(args.layer)
++        if not 1 <= index <= len(layers):
++            sys.exit(f"--layer {index}: {args.network} has layers 1..{len(layers)}")
++        return index, layers[index - 1]
++    if args.layer not in layers:
++        sys.exit(f"no layer {args.layer} in {args.network}; see `run_power.py list`")
++    return layers.index(args.layer) + 1, args.layer
++
++
++def cmd_list(args):
++    for network in sorted(n for n in os.listdir(args.dir)
++                          if os.path.isdir(layer_dir(args, n))):
++        layers = layers_of(args, network)
++        print(f"{network} ({len(layers)} layers):")
++        for i, layer in enumerate(layers, 1):
++            print(f"  [{i:2d}] {layer}")
++
++
++def cmd_start(args):
++    layers = layers_of(args, args.network)
++    index, layer = resolve_layer(args, layers)
++    elf = os.path.join(layer_dir(args, args.network), layer + ".riscv")
++    out = os.path.join(args.out, args.network)
++    os.makedirs(out, exist_ok=True)
++    print(f"[{index}/{len(layers)}] {args.network}/{layer}: starting OpenOCD, loading")
++    with OpenOCD(args, os.path.join(out, f"{layer}_openocd.log")) as ocd:
++        text, code = gdb(args, ocd.port, START_COMMANDS, elf=elf,
++                         log_path=os.path.join(out, f"{layer}_gdb.log"))
++        if code != 0:
++            print(text.strip()[-2000:])
++            sys.exit(f"GDB exited with {code}: {layer} did not start "
++                     f"(see {out}/{layer}_gdb.log and {layer}_openocd.log)")
++        if args.verify_seconds > 0:
++            elapsed, deltas = sample(args, ocd.port, args.verify_seconds)
++            report_sample(args, elapsed, deltas, args.verify_seconds)
++    print(f"[{index}/{len(layers)}] {args.network}/{layer} is running; "
++          f"OpenOCD stopped. Measure now.")
++    if index < len(layers):
++        print(f"next: --layer {index + 1}  ({layers[index]})")
++
++
++def read_counters(args, port):
++    """Read the counters once, and return them with the time they were taken.
++
++    The values are captured at the `monitor halt` inside the GDB session, which
++    is neither the start nor the end of the call, so the midpoint stands in for
++    it. Both reads of a sample run the same commands, so whatever that estimate
++    is off by is the same for each and cancels in the difference.
++    """
++    cmds = ["monitor halt"]
++    for name, addr in COUNTERS:
++        cmds.append(f'printf "COUNTER {name} %llu\\n", *(unsigned long long*){addr:#x}')
++    cmds += ["monitor resume", "detach"]
++    started = time.monotonic()
++    out, _ = gdb(args, port, cmds)
++    captured = (started + time.monotonic()) / 2
++    found = {}
++    for name, _ in COUNTERS:
++        m = re.search(rf"^COUNTER {name} (\d+)", out, re.M)
++        if m:
++            found[name] = int(m.group(1))
++    return found, captured
++
++
++def sample(args, port, seconds):
++    """Two counter reads `seconds` apart; return (elapsed, {name: delta})."""
++    before, taken_before = read_counters(args, port)
++    time.sleep(seconds)
++    after, taken_after = read_counters(args, port)
++    # Each read spawns a GDB process and connects over JTAG, seconds that fall
++    # inside the window. Dividing by `seconds` rather than by the interval the
++    # reads actually spanned is what made a 10 s sample read 43 % high.
++    elapsed = taken_after - taken_before
++    deltas = {name: after[name] - before[name]
++              for name, _ in COUNTERS if name in before and name in after}
++    return elapsed, deltas
++
++
++def busy_percent(args, elapsed, cycles):
++    return 100.0 * (cycles / elapsed / 1e6) / args.clock_mhz
++
++
++def report_sample(args, elapsed, deltas, requested):
++    print(f"over {elapsed:.1f} s measured ({requested:.1f} s requested), "
++          f"chip clock {args.clock_mhz:g} MHz:")
++    for name, _ in COUNTERS:
++        if name in deltas:
++            rate = deltas[name] / elapsed / 1e6
++            print(f"  {name:12} {deltas[name]:14d} cycles  {rate:8.2f} Mcycles/s  "
++                  f"{busy_percent(args, elapsed, deltas[name]):6.1f} % busy")
++    acc = deltas.get("accelerator", 0)
++    if acc == 0:
++        print("\naccelerator cycle count did not move: the loop is not running")
++        return
++    # The counter advances at most once per clock, so a duty cycle above 100 %
++    # can only mean --clock-mhz is below the rate the chip is really running at.
++    duty = busy_percent(args, elapsed, acc)
++    if duty > 105.0:
++        print(f"\naccelerator busy {duty:.0f} % of wall time, which is impossible: "
++              f"the chip clock is above the {args.clock_mhz:g} MHz given")
++
++
++def cmd_sample(args):
++    with OpenOCD(args, os.path.join(args.out, "openocd-sample.log")) as ocd:
++        elapsed, deltas = sample(args, ocd.port, args.seconds)
++    report_sample(args, elapsed, deltas, args.seconds)
++
++
++def cmd_stop(args):
++    with OpenOCD(args, os.path.join(args.out, "openocd-stop.log")) as ocd:
++        gdb(args, ocd.port, ["monitor reset halt", "detach"])
++    print("chip halted")
++
++
++def main():
++    p = argparse.ArgumentParser(description=__doc__,
++                                formatter_class=argparse.RawDescriptionHelpFormatter)
++    p.add_argument("command", choices=["list", "start", "sample", "stop"])
++    p.add_argument("--dir", default="networks", help="folder with one sub-folder per network")
++    p.add_argument("--out", default="power", help="folder for logs and GDB scripts")
++    p.add_argument("--network", default="llama_prefill")
++    p.add_argument("--layer", default=None, help="start: the layer's number from `list`, or its name")
++    p.add_argument("--seconds", type=float, default=60.0, help="sample: the window")
++    p.add_argument("--clock-mhz", type=float, default=100.0,
++                   help="chip clock, to report each counter as a duty cycle")
++    p.add_argument("--verify-seconds", type=float, default=0.0,
++                   help="start: sample the counters this long after the load (0 = skip)")
++    p.add_argument("--openocd-cfg", default="openocd.cfg", help="OpenOCD config for the J-Link")
++    p.add_argument("--openocd-timeout", type=float, default=60.0,
++                   help="seconds to wait for OpenOCD's gdb port")
++    p.add_argument("--gdb", default="riscv-none-embed-gdb", help="GDB executable")
++    p.add_argument("--timeout", type=int, default=1800, help="seconds per GDB call")
++    args = p.parse_args()
++
++    if args.command != "list" and not os.path.exists(args.openocd_cfg):
++        sys.exit(f"no OpenOCD config at {args.openocd_cfg} (--openocd-cfg)")
++    {"list": cmd_list, "start": cmd_start,
++     "sample": cmd_sample, "stop": cmd_stop}[args.command](args)
++
++
++if __name__ == "__main__":
++    main()
