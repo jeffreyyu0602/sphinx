@@ -80,7 +80,7 @@ The `.gitmodules` of `0733cd8` names `voyager-compiler.git`; `34ceff2` is on
   | `meta-llama/Llama-2-7b-hf` | `01c7f73d771dfac7d292323805ebc428287df4f9` |
   | `amd/AMD-Llama-135m` | `9a224a07b9b0210299d8c19b9e694ac56ed3ba1d` |
   | `turboderp/Qwama-0.5B-Instruct` | `fa73d1257f7681af595c86521b332fe26981f179` |
-  | `wikitext` (dataset) | `b08601e04326c79dfdd32d625aee71d232d685c3` |
+  | `Salesforce/wikitext` (dataset) | `b08601e04326c79dfdd32d625aee71d232d685c3` |
 
   The compiler loads `main`. If a repo's `main` has moved, download these
   revisions into the cache first and compile with `HF_HUB_OFFLINE=1`.
@@ -98,7 +98,7 @@ The `.gitmodules` of `0733cd8` names `voyager-compiler.git`; `34ceff2` is on
 ## 1. Checkout
 
 ```bash
-git clone --branch sphinx-kit git@code.stanford.edu:tsmc7/sphinx/soc.git sphinx-soc
+git clone --branch sphinx-kit "$SOC_REMOTE" sphinx-soc
 cd sphinx-soc
 git submodule update --init generators/voyager
 git -C generators/voyager checkout 0733cd8
@@ -109,9 +109,11 @@ git -C generators/voyager/voyager-compiler checkout 34ceff2
 git -C generators/voyager apply ../../sphinx-repro/voyager-sphinx-kit.patch
 ```
 
-Use whichever remote carries `sphinx-kit` (the GitHub mirror is
-`git@github.com:jeffreyyu0602/sphinx.git`). No other submodule is needed (no
-Chipyard setup, no toolchain build).
+`$SOC_REMOTE` is the superrepo remote `sphinx-kit` is pushed to: the
+superrepo's `origin`, `git@github.com:jeffreyyu0602/sphinx.git`, or
+`git@code.stanford.edu:tsmc7/sphinx/soc.git`; check with `git ls-remote
+"$SOC_REMOTE" sphinx-kit`. No other submodule is needed (no Chipyard setup,
+no toolchain build).
 `voyager-sphinx-kit.patch` adds what the 2026-09-17 tree had but no commit
 holds:
 
@@ -127,6 +129,7 @@ holds:
 ## 2. Environment
 
 ```bash
+source "$(conda info --base)/etc/profile.d/conda.sh"
 conda create -y -p $PWD/.conda-env --file sphinx-repro/env/conda-explicit.txt
 conda activate $PWD/.conda-env
 pip install -r sphinx-repro/env/pip-freeze.txt
@@ -137,9 +140,11 @@ pip list --format=freeze --exclude-editable | diff - sphinx-repro/env/pip-freeze
 ```
 
 Run `pip` only after `conda create`, in that order. `pip-freeze.txt` is the
-full `pip list` of the verified env, so it also pins packages conda
-installed that are not on PyPI (`awscli==2.17.23`, `conda==23.9.0`, ...);
-pip finds those already installed and skips them. It also holds both the
+full `pip list` of the verified env, so it also pins four packages conda
+installed that are not on PyPI at those versions: `awscli==2.17.23`,
+`conda==23.9.0`, `constructor==3.8.1` and `conda-tree==1.0.5` (the
+`conda-tree-1.1.0` conda package reports version 1.0.5). pip finds them
+already installed and skips them. It also holds both the
 cu12 and the cu13 nvidia stacks (about 5 GB together) because the verified
 env did; torch `2.12.1+cu130` needs only the cu13 one, but the list is kept
 as the env that was verified. The two `diff`s check the env (the first may
