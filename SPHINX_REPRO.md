@@ -49,7 +49,7 @@ tile survives in the readback), which run with `MAX_TILES=1`.
 | `generators/voyager/voyager-compiler` | `34ceff2` (on `main`) | `https://github.com/jeffreyyu0602/voyager-compiler-2.git` |
 | `generators/voyager/lib/{spdlog,xtensor,xtl}` | `3335c380`, `d9c3782e`, `d11fb6b5` (the gitlinks of `0733cd8`) | their GitHub repos |
 | RISC-V toolchain | `riscv-tools 1.0.6` (ucb-bar conda, build `g56c29e0`), `riscv64-unknown-elf-gcc (gc891d8dc23e) 13.2.0`, the string in every kit ELF's `.comment` | conda env |
-| Host compiler | Catapult 2024.2_2: its `g++ 9.2.0` and `shared/include` headers (HLS never runs) | site install |
+| Host compiler | Catapult 2024.2_2: its `g++ (Calypto) 10.3.0` and `shared/include` headers (HLS never runs); `as`/`ld` from binutils 2.33.1 of the VCS GNU package S-2021.09 `gnu_9` (its gcc 9.2.0 is on `PATH` but unused) | site install |
 | Python | 3.10.14, torch 2.12.1 (the PyPI wheel, `2.12.1+cu130`, run on CPU), transformers 5.13.0, conda `libprotobuf` 5.27.0 / `protoc` | `sphinx-repro/env/` |
 
 The `.gitmodules` of `0733cd8` names `voyager-compiler.git`; `34ceff2` is on
@@ -58,10 +58,14 @@ The `.gitmodules` of `0733cd8` names `voyager-compiler.git`; `34ceff2` is on
 ## Requirements
 
 - Linux x86-64 with the Catapult 2024.2_2 install. `rebuild.sh` loads it with
-  `modulecmd` (`catapult/2024.2_2`, plus the VCS GNU package for its
-  runtime); at another site, edit those lines at the top of
-  `generators/voyager/sphinx/firmware/rebuild.sh` so that `$CATAPULT_ROOT`
-  points at the install, and replace the three hard-coded install paths
+  `modulecmd` (`catapult/2024.2_2`), then sources the VCS GNU package
+  (`/cad/synopsys/vcs_gnu_package/S-2021.09/gnu_9/linux/source_me.sh`),
+  which puts binutils 2.33.1 first on `PATH`: Catapult's `g++ 10.3.0`
+  compiles the host tools and calls that `as` and `ld`. The host tools load
+  `libstdc++` from the conda env (`rpath`). At another site, edit those lines
+  at the top of `generators/voyager/sphinx/firmware/rebuild.sh` so that
+  `$CATAPULT_ROOT` points at the install and binutils 2.33.1 is on `PATH`,
+  and replace the three hard-coded install paths
   (`CC`, the `shared/include` `-I`, the `shared/lib` `-L`) in
   `generators/voyager/test/soc/Makefile`, which builds `GenerateSoCBinaries`
   and `jtag_sim_checker`:
@@ -109,10 +113,12 @@ git -C generators/voyager/voyager-compiler checkout 34ceff2
 git -C generators/voyager apply ../../sphinx-repro/voyager-sphinx-kit.patch
 ```
 
-`$SOC_REMOTE` is the superrepo remote `sphinx-kit` is pushed to: the
-superrepo's `origin`, `git@github.com:jeffreyyu0602/sphinx.git`, or
-`git@code.stanford.edu:tsmc7/sphinx/soc.git`; check with `git ls-remote
-"$SOC_REMOTE" sphinx-kit`. No other submodule is needed (no Chipyard setup,
+`$SOC_REMOTE` is a superrepo remote that `sphinx-kit` has been pushed to
+(`git@github.com:jeffreyyu0602/sphinx.git` or
+`git@code.stanford.edu:tsmc7/sphinx/soc.git`), or the path of a local
+superrepo that has the branch. The branch is created locally: until it is
+pushed, neither remote has it. Check with `git ls-remote "$SOC_REMOTE"
+sphinx-kit`, which prints nothing for a remote without it. No other submodule is needed (no Chipyard setup,
 no toolchain build).
 `voyager-sphinx-kit.patch` adds what the 2026-09-17 tree had but no commit
 holds:
@@ -165,9 +171,13 @@ to `generators/voyager/build/sphinx-repro/` (`$BUILD_DIR`).
 ## 3. Rebuild and check
 
 ```bash
+md5sum -c sphinx-repro/md5/zips.md5                 # the committed kits
 bash sphinx-repro/reproduce.sh                      # all twelve networks
 FREE_TENSORS=1 bash sphinx-repro/reproduce.sh amd135m_prefill llama_decode
 ```
+
+Run all three from the clone root (`zips.md5` paths are relative to it).
+The first prints `OK` for both archives; `reproduce.sh` does not run it.
 
 Per network, one after another, `reproduce.sh` runs:
 
@@ -216,7 +226,8 @@ finds every kit file.
 `firmware.py` globbed in: each is `.bin.2` of a layer whose dump list has two
 regions, so nothing reads it, and a clean emission does not write it. The zip
 archives themselves are not rebuilt (`firmware.py` zipped the staged kits);
-their members are, and `md5/zips.md5` checks the committed archives.
+their members are, and `md5sum -c sphinx-repro/md5/zips.md5` checks the
+committed archives.
 
 ## 4. Run on the chip
 
@@ -302,7 +313,11 @@ env of `sphinx-repro/env/`, the Hugging Face revisions above):
   `llama_prefill`, `llama_prefill_mp`, `amd135m_prefill` and
   `amd135m_decode_kivi` byte for byte (params, both kits) under
   `taskset -c 0-63`; the other eight were not re-run there for lack of
-  disk.
+  disk. A third fresh clone, the same way, rebuilt `amd135m_prefill`,
+  `amd135m_decode_kivi` and `qwama_decode_kivi` byte for byte, and
+  `md5sum -c sphinx-repro/md5/zips.md5` passed. All 410 URLs of
+  `conda-explicit.txt` downloaded, and every pin of `pip-freeze.txt` but the
+  four named in step 2 is on PyPI.
 - Not tested: recreating the conda env from `sphinx-repro/env/` (the build
   used the env that built the kit: its conda history ends 2026-08-24, and
   only `black` and `py-spy` were pip-installed since), a host other than
@@ -337,7 +352,7 @@ env of `sphinx-repro/env/`, the Hugging Face revisions above):
 | `sphinx-repro/md5/params.md5`, `tensors.md5` | the 2026-09-17 compiled params, twelve networks |
 | `sphinx-repro/md5/kit-graded.md5`, `kit-power.md5` | every zip member |
 | `sphinx-repro/md5/not-reproduced.txt` | the five stale zip members |
-| `sphinx-repro/md5/zips.md5` | the two archives |
+| `sphinx-repro/md5/zips.md5` | the two archives (`md5sum -c`, from the clone root) |
 | `sphinx-repro/env/conda-explicit.txt`, `pip-freeze.txt` | the conda env of the verified build |
 | `sphinx-repro/soc-hyperram.patch`, `soc-rocket-chip.patch` | RTL simulation only (step 5) |
 | `sphinx-repro/voyager-build-only.patch` | optional, `run_voyager.py --build-only` |
